@@ -156,11 +156,12 @@ class BaseRLModel(ABC):
         """
         set_global_seeds(seed)
         # TODO: better handling for VecEnv (different seeds)
-        if hasattr(self.env, 'seed'):
-            self.env.seed(seed)
-        else:
-            self.env.env_method("seed", seed)
-        self.env.action_space.seed(seed)
+        if self.env is not None:
+            if hasattr(self.env, 'seed'):
+                self.env.seed(seed)
+            else:
+                self.env.env_method("seed", seed)
+                self.env.action_space.seed(seed)
         self.action_space.seed(seed)
 
     def _setup_learn(self):
