@@ -8,7 +8,7 @@ from stable_baselines.a2c.utils import linear
 
 class ProbabilityDistribution(object):
     """
-    Base clas for describing a probability distribution.
+    Base class for describing a probability distribution.
     """
     def __init__(self):
         super(ProbabilityDistribution, self).__init__()
@@ -43,7 +43,7 @@ class ProbabilityDistribution(object):
         """
         Calculates the Kullback-Leibler divergence from the given probabilty distribution
 
-        :param other: ([float]) the distibution to compare with
+        :param other: ([float]) the distribution to compare with
         :return: (float) the KL divergence of the two distributions
         """
         raise NotImplementedError

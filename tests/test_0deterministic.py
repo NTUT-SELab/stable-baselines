@@ -3,7 +3,7 @@ import pytest
 from stable_baselines import A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TRPO, TD3
 from stable_baselines.common.noise import NormalActionNoise
 
-N_STEPS_TRAINING = 2000
+N_STEPS_TRAINING = 5000
 SEED = 0
 
 # Weird stuff: TD3 would fail if another algorithm is tested before
@@ -31,5 +31,5 @@ def test_deterministic_training_common(algo):
             obs, reward, _, _ = env.step(action)
             results[i].append(action)
             rewards[i].append(reward)
-    assert sum(results[0]) == sum(results[1]), print(results)
-    assert sum(rewards[0]) == sum(rewards[1]), print(rewards)
+    assert sum(results[0]) == sum(results[1]), results
+    assert sum(rewards[0]) == sum(rewards[1]), rewards
