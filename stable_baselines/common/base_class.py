@@ -30,10 +30,16 @@ class BaseRLModel(ABC):
     :param verbose: (int) the verbosity level: 0 none, 1 training information, 2 tensorflow debug
     :param requires_vec_env: (bool) Does this model require a vectorized environment
     :param policy_base: (BasePolicy) the base policy used by this method
+    :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
+    :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
+        Note that if you want completely deterministic results, you must set
+        `n_cpu_tf_sess` to 1
+    :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
+        If None, the number of cpu of the current machine will be used.
     """
 
     def __init__(self, policy, env, verbose=0, *, requires_vec_env, policy_base,
-                 policy_kwargs=None, seed=0):
+                 policy_kwargs=None, seed=0, n_cpu_tf_sess=None):
         if isinstance(policy, str) and policy_base is not None:
             self.policy = get_policy_from_name(policy_base, policy)
         else:
@@ -52,6 +58,7 @@ class BaseRLModel(ABC):
         self.params = None
         self.seed = seed
         self._param_load_ops = None
+        self.n_cpu_tf_sess = n_cpu_tf_sess
 
         if env is not None:
             if isinstance(env, str):
@@ -699,13 +706,19 @@ class ActorCriticRLModel(BaseRLModel):
     :param verbose: (int) the verbosity level: 0 none, 1 training information, 2 tensorflow debug
     :param policy_base: (BasePolicy) the base policy used by this method (default=ActorCriticPolicy)
     :param requires_vec_env: (bool) Does this model require a vectorized environment
+    :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
+    :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
+        Note that if you want completely deterministic results, you must set
+        `n_cpu_tf_sess` to 1
+    :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
+        If None, the number of cpu of the current machine will be used.
     """
 
     def __init__(self, policy, env, _init_setup_model, verbose=0, policy_base=ActorCriticPolicy,
-                 requires_vec_env=False, policy_kwargs=None, seed=0):
+                 requires_vec_env=False, policy_kwargs=None, seed=0, n_cpu_tf_sess=None):
         super(ActorCriticRLModel, self).__init__(policy, env, verbose=verbose, requires_vec_env=requires_vec_env,
                                                  policy_base=policy_base, policy_kwargs=policy_kwargs,
-                                                 seed=seed)
+                                                 seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         self.sess = None
         self.initial_state = None
@@ -877,12 +890,20 @@ class OffPolicyRLModel(BaseRLModel):
     :param verbose: (int) the verbosity level: 0 none, 1 training information, 2 tensorflow debug
     :param requires_vec_env: (bool) Does this model require a vectorized environment
     :param policy_base: (BasePolicy) the base policy used by this method
+    :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
+    :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
+        Note that if you want completely deterministic results, you must set
+        `n_cpu_tf_sess` to 1
+    :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
+        If None, the number of cpu of the current machine will be used.
     """
 
     def __init__(self, policy, env, replay_buffer=None, _init_setup_model=False, verbose=0, *,
-                 requires_vec_env=False, policy_base=None, policy_kwargs=None, seed=0):
+                 requires_vec_env=False, policy_base=None,
+                 policy_kwargs=None, seed=0, n_cpu_tf_sess=None):
         super(OffPolicyRLModel, self).__init__(policy, env, verbose=verbose, requires_vec_env=requires_vec_env,
-                                               policy_base=policy_base, policy_kwargs=policy_kwargs, seed=seed)
+                                               policy_base=policy_base, policy_kwargs=policy_kwargs,
+                                               seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         self.replay_buffer = replay_buffer
 

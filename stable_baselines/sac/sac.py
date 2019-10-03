@@ -1,6 +1,5 @@
 import sys
 import time
-import multiprocessing
 from collections import deque
 import warnings
 
@@ -64,6 +63,11 @@ class SAC(OffPolicyRLModel):
     :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
     :param full_tensorboard_log: (bool) enable additional logging when using tensorboard
         Note: this has no effect on SAC logging for now
+    :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
+        Note that if you want completely deterministic results, you must set
+        `n_cpu_tf_sess` to 1
+    :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
+        If None, the number of cpu of the current machine will be used.
     """
 
     def __init__(self, policy, env, gamma=0.99, learning_rate=3e-4, buffer_size=50000,
@@ -71,11 +75,12 @@ class SAC(OffPolicyRLModel):
                  tau=0.005, ent_coef='auto', target_update_interval=1,
                  gradient_steps=1, target_entropy='auto', action_noise=None,
                  random_exploration=0.0, verbose=0, tensorboard_log=None,
-                 _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False, seed=0):
+                 _init_setup_model=True, policy_kwargs=None, full_tensorboard_log=False,
+                 seed=0, n_cpu_tf_sess=None):
 
         super(SAC, self).__init__(policy=policy, env=env, replay_buffer=None, verbose=verbose,
                                   policy_base=SACPolicy, requires_vec_env=False, policy_kwargs=policy_kwargs,
-                                  seed=seed)
+                                  seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         self.buffer_size = buffer_size
         self.learning_rate = learning_rate
@@ -142,10 +147,7 @@ class SAC(OffPolicyRLModel):
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)
-                n_cpu = multiprocessing.cpu_count()
-                if sys.platform == 'darwin':
-                    n_cpu //= 2
-                self.sess = tf_util.make_session(num_cpu=n_cpu, graph=self.graph)
+                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
 
                 self.replay_buffer = ReplayBuffer(self.buffer_size)
 
@@ -548,6 +550,7 @@ class SAC(OffPolicyRLModel):
             "action_space": self.action_space,
             "policy": self.policy,
             "n_envs": self.n_envs,
+            "n_cpu_tf_sess": self.n_cpu_tf_sess,
             "action_noise": self.action_noise,
             "random_exploration": self.random_exploration,
             "_vectorize_action": self._vectorize_action,

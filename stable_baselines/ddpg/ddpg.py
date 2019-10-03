@@ -190,8 +190,12 @@ class DDPG(OffPolicyRLModel):
     :param policy_kwargs: (dict) additional arguments to be passed to the policy on creation
     :param full_tensorboard_log: (bool) enable additional logging when using tensorboard
         WARNING: this logging can take a lot of space quickly
+    :param seed: (int) Seed for the pseudo-random generators (python, numpy, tensorflow).
+        Note that if you want completely deterministic results, you must set
+        `n_cpu_tf_sess` to 1
+    :param n_cpu_tf_sess: (int) The number of threads for TensorFlow operations
+        If None, the number of cpu of the current machine will be used.
     """
-
     def __init__(self, policy, env, gamma=0.99, memory_policy=None, eval_env=None, nb_train_steps=50,
                  nb_rollout_steps=100, nb_eval_steps=100, param_noise=None, action_noise=None,
                  normalize_observations=False, tau=0.001, batch_size=128, param_noise_adaption_interval=50,
@@ -199,11 +203,12 @@ class DDPG(OffPolicyRLModel):
                  return_range=(-np.inf, np.inf), actor_lr=1e-4, critic_lr=1e-3, clip_norm=None, reward_scale=1.,
                  render=False, render_eval=False, memory_limit=None, buffer_size=50000, random_exploration=0.0,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=0):
+                 full_tensorboard_log=False, seed=0, n_cpu_tf_sess=1):
 
         super(DDPG, self).__init__(policy=policy, env=env, replay_buffer=None,
                                    verbose=verbose, policy_base=DDPGPolicy,
-                                   requires_vec_env=False, policy_kwargs=policy_kwargs, seed=seed)
+                                   requires_vec_env=False, policy_kwargs=policy_kwargs,
+                                   seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         # Parameters.
         self.gamma = gamma
@@ -321,7 +326,7 @@ class DDPG(OffPolicyRLModel):
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)
-                self.sess = tf_util.single_threaded_session(graph=self.graph)
+                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
 
                 self.replay_buffer = ReplayBuffer(self.buffer_size)
 
@@ -617,7 +622,6 @@ class DDPG(OffPolicyRLModel):
         action = action.flatten()
         if self.action_noise is not None and apply_noise:
             noise = self.action_noise()
-            assert noise.shape == action.shape
             action += noise
         action = np.clip(action, -1, 1)
         return action, q_value
@@ -1088,6 +1092,7 @@ class DDPG(OffPolicyRLModel):
             "buffer_size": self.buffer_size,
             "random_exploration": self.random_exploration,
             "policy": self.policy,
+            "n_cpu_tf_sess": self.n_cpu_tf_sess,
             "n_envs": self.n_envs,
             "_vectorize_action": self._vectorize_action,
             "policy_kwargs": self.policy_kwargs

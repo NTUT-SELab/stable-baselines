@@ -56,7 +56,7 @@ def test_generate(generate_env):
     model, policy, env_name, n_env, n_episodes = generate_env
 
     if n_env > 1:
-        env = make_atari_env(env_name, num_env=n_env)
+        env = make_atari_env(env_name, num_env=n_env, seed=0)
         model = model(policy, env, verbose=0)
     else:
         model = model(policy, env_name, verbose=0)
@@ -90,7 +90,7 @@ def test_generate_callable():
 
 
 def test_pretrain_images():
-    env = make_atari_env("PongNoFrameskip-v4", num_env=1)
+    env = make_atari_env("PongNoFrameskip-v4", num_env=1, seed=0)
     env = VecFrameStack(env, n_stack=4)
     model = PPO2('CnnPolicy', env)
     generate_expert_traj(model, 'expert_pong', n_timesteps=0, n_episodes=1,

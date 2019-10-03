@@ -1,4 +1,5 @@
 import time
+import warnings
 from collections import deque
 
 import numpy as np
@@ -24,6 +25,10 @@ class ACKTR(ActorCriticRLModel):
     :param env: (Gym environment or str) The environment to learn from (if registered in Gym, can be str)
     :param gamma: (float) Discount factor
     :param nprocs: (int) The number of threads for TensorFlow operations
+
+        .. deprecated:: 2.9.0
+            Use `n_cpu_tf_sess` instead.
+
     :param n_steps: (int) The number of steps to run for each environment
     :param ent_coef: (float) The weight for the entropic loss
     :param vf_coef: (float) The weight for the loss on the value function
@@ -45,13 +50,14 @@ class ACKTR(ActorCriticRLModel):
         WARNING: this logging can take a lot of space quickly
     """
 
-    def __init__(self, policy, env, gamma=0.99, nprocs=1, n_steps=20, ent_coef=0.01, vf_coef=0.25, vf_fisher_coef=1.0,
+    def __init__(self, policy, env, gamma=0.99, nprocs=None, n_steps=20, ent_coef=0.01, vf_coef=0.25, vf_fisher_coef=1.0,
                  learning_rate=0.25, max_grad_norm=0.5, kfac_clip=0.001, lr_schedule='linear', verbose=0,
                  tensorboard_log=None, _init_setup_model=True, async_eigen_decomp=False, kfac_update=1,
-                 gae_lambda=None, policy_kwargs=None, full_tensorboard_log=False, seed=0):
+                 gae_lambda=None, policy_kwargs=None, full_tensorboard_log=False, seed=0, n_cpu_tf_sess=1):
 
         super(ACKTR, self).__init__(policy=policy, env=env, verbose=verbose, requires_vec_env=True,
-                                    _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs, seed=seed)
+                                    _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
+                                    seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
         self.n_steps = n_steps
         self.gamma = gamma
@@ -62,7 +68,12 @@ class ACKTR(ActorCriticRLModel):
         self.max_grad_norm = max_grad_norm
         self.learning_rate = learning_rate
         self.lr_schedule = lr_schedule
-        self.nprocs = nprocs
+
+        if nprocs is not None:
+            warnings.warn("nprocs will be removed in a future version (v3.x.x) "
+                          "use n_cpu_tf_sess instead", DeprecationWarning)
+            self.n_cpu_tf_sess = nprocs
+
         self.tensorboard_log = tensorboard_log
         self.async_eigen_decomp = async_eigen_decomp
         self.full_tensorboard_log = full_tensorboard_log
@@ -120,7 +131,7 @@ class ACKTR(ActorCriticRLModel):
             self.graph = tf.Graph()
             with self.graph.as_default():
                 self.set_random_seed(self.seed)
-                self.sess = tf_util.make_session(num_cpu=self.nprocs, graph=self.graph)
+                self.sess = tf_util.make_session(num_cpu=self.n_cpu_tf_sess, graph=self.graph)
 
                 n_batch_step = None
                 n_batch_train = None
@@ -372,7 +383,6 @@ class ACKTR(ActorCriticRLModel):
         data = {
             "gamma": self.gamma,
             "gae_lambda": self.gae_lambda,
-            "nprocs": self.nprocs,
             "n_steps": self.n_steps,
             "vf_coef": self.vf_coef,
             "ent_coef": self.ent_coef,
@@ -385,6 +395,7 @@ class ACKTR(ActorCriticRLModel):
             "policy": self.policy,
             "observation_space": self.observation_space,
             "action_space": self.action_space,
+            "n_cpu_tf_sess": self.n_cpu_tf_sess,
             "n_envs": self.n_envs,
             "kfac_update": self.kfac_update,
             "_vectorize_action": self._vectorize_action,
