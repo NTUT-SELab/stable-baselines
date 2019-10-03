@@ -1,7 +1,5 @@
 import pytest
 
-import numpy as np
-
 from stable_baselines import A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TRPO, TD3
 from stable_baselines.common.noise import NormalActionNoise
 
