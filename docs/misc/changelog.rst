@@ -6,7 +6,7 @@ Changelog
 For download links, please look at `Github release page <https://github.com/hill-a/stable-baselines/releases>`_.
 
 
-Pre-Release 2.8.1a0 (WIP)
+Pre-Release 2.9.0a0 (WIP)
 --------------------------
 
 Breaking Changes:
