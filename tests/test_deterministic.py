@@ -5,7 +5,7 @@ import numpy as np
 from stable_baselines import A2C, ACER, ACKTR, DQN, DDPG, PPO1, PPO2, SAC, TRPO, TD3
 from stable_baselines.common.noise import NormalActionNoise
 
-N_STEPS_TRAINING = 11000
+N_STEPS_TRAINING = 2000
 SEED = 0
 
 # Weird stuff: TD3 would fail if another algorithm is tested before
