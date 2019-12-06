@@ -308,6 +308,7 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
         negative_inf_vector = tf.ones_like(self._action_mask_ph, dtype=tf.float32) * -np.inf
         zero_vector = tf.zeros_like(self._action_mask_ph, dtype=tf.float32)
         _action_mask_ph = tf.where(tf.cast(self._action_mask_ph, dtype=tf.bool), zero_vector, negative_inf_vector)
+        _action_mask_ph = tf.Print(_action_mask_ph, [_action_mask_ph], 'neginf action mask: ', summarize=100)
         return _action_mask_ph
 
     def flatparam(self):
@@ -324,7 +325,8 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
         #       the implementation does not allow second-order derivatives...
         one_hot_actions = tf.one_hot(x, self.logits.get_shape().as_list()[-1])
         one_hot_actions = tf.stop_gradient(one_hot_actions)
-
+        self.logits = tf.Print(self.logits, [self.logits], 'neglogp logits: ', summarize=100)
+        self._action_mask_ph = tf.Print(self.action_mask_ph, [self.action_mask_ph], 'neglogp action mask: ', summarize=100)
         # Prevent invalid actions backpropagation
         self.logits = tf.multiply(self.logits, self.action_mask_ph)
 
@@ -333,7 +335,7 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
         exp_logits = softmax * tf.reduce_sum(tf.exp(self.logits), axis=-1, keepdims=True)
         exp_logits = tf.multiply(exp_logits, self.action_mask_ph)
         softmax = exp_logits / tf.reduce_sum(exp_logits, axis=-1, keepdims=True)
-
+        softmax = tf.Print(softmax, [softmax], 'neglogp softmax: ', summarize=100)
         # softmax: [4, 0, 2, 3]
         # action_mask: [1, 0, 1, 1]
         # new_softmax: [4, 1, 2, 3]
@@ -341,7 +343,7 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
 
         softmax_log = -tf.log(softmax)
         softmax_cross_entropy = tf.reduce_sum(tf.multiply(softmax_log, one_hot_actions), axis=-1)
-
+        softmax_cross_entropy = tf.Print(softmax_cross_entropy, [softmax_cross_entropy], 'neglogp softmax cross entropy: ', summarize=100)
         return softmax_cross_entropy
 
     def kl(self, other):
@@ -366,12 +368,15 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
     def sample(self):
         # Gumbel-max trick to sample
         # a categorical distribution (see http://amid.fish/humble-gumbel)
+        self.logits = tf.Print(self.logits, [self.logits], 'sample logits: ', summarize=100)
         uniform = tf.random_uniform(tf.shape(self.logits), dtype=self.logits.dtype)
+        uniform = tf.Print(uniform, [uniform], 'sample uniform: ', summarize=100)
         probability = self.logits - tf.log(-tf.log(uniform))
-
+        
         # mask: 0 is valid action, -inf is invalid action
         # [1, 2, 3] add [0, -inf, 0] = [1, -inf, 3]
         probability = tf.add(probability, self.neginf_action_mask_ph)
+        probability = tf.Print(probability, [probability], 'sample probability: ', summarize=100)
         return tf.argmax(probability, axis=-1)
 
     @classmethod
