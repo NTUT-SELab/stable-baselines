@@ -13,10 +13,13 @@ else
   TAG="${TAG}-cpu"
 fi
 
-docker build --build-arg PARENT_IMAGE=${PARENT} --build-arg USE_GPU=${USE_GPU} -t ${TAG}:${VERSION} .
-docker tag ${TAG}:${VERSION} ${TAG}:latest
+if [[ ${INSTALL_MPI} == "True" ]]; then
+  VERSION="${VERSION}-MPI"
+  docker build --build-arg PARENT_IMAGE=${PARENT} --build-arg INSTALL_MPI=${INSTALL_MPI} --build-arg USE_GPU=${USE_GPU}  -t ${TAG}:${VERSION} .
+else
+  docker build --build-arg PARENT_IMAGE=${PARENT} --build-arg INSTALL_MPI=${INSTALL_MPI} --build-arg USE_GPU=${USE_GPU} -t ${TAG}:${VERSION} -t ${TAG} .
+fi
 
 if [[ ${RELEASE} == "True" ]]; then
-  docker push ${TAG}:${VERSION}
-  docker push ${TAG}:latest
+  docker push ${TAG}
 fi

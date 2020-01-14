@@ -1,6 +1,7 @@
 ARG PARENT_IMAGE
 ARG USE_GPU
 FROM $PARENT_IMAGE
+ARG INSTALL_MPI
 
 RUN apt-get -y update \
     && apt-get -y install \
@@ -26,8 +27,8 @@ ENV CODE_DIR /root/code
 ENV VENV /root/venv
 
 COPY ./setup.py /root/code/setup.py
+COPY ./stable_baselines/ /root/code/stable_baselines/
 RUN \
-    mkdir -p ${CODE_DIR}/stable_baselines && \
     pip install virtualenv && \
     virtualenv $VENV --python=python3 && \
     . $VENV/bin/activate && \
@@ -39,9 +40,14 @@ RUN \
         TENSORFLOW_PACKAGE="tensorflow==1.8.0"; \
     fi; \
     pip install ${TENSORFLOW_PACKAGE} && \
-    pip install -e .[mpi,tests] && \
-    pip install codacy-coverage && \
-    rm -rf $HOME/.cache/pip
+    if [ "$INSTALL_MPI" = "True" ]; then \
+        EXTRAS_REQUIRE="[mpi,tests]"; \
+    else \
+        EXTRAS_REQUIRE="[tests]"; \
+    fi; \
+    pip install -e .${EXTRAS_REQUIRE} && \
+    rm -rf $HOME/.cache/pip && \
+    rm -rf stable_baselines
 
 ENV PATH=$VENV/bin:$PATH
 
