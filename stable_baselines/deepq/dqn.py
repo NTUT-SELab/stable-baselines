@@ -99,7 +99,6 @@ class DQN(OffPolicyRLModel):
         self.exploration = None
         self.params = None
         self.summary = None
-        self.episode_reward = None
 
         if _init_setup_model:
             self.setup_model()
@@ -178,7 +177,6 @@ class DQN(OffPolicyRLModel):
                 assert not self.prioritized_replay, "Prioritized replay buffer is not supported by HER"
                 self.replay_buffer = replay_wrapper(self.replay_buffer)
 
-
             # Create the schedule for exploration starting from 1.
             self.exploration = LinearSchedule(schedule_timesteps=int(self.exploration_fraction * total_timesteps),
                                               initial_p=self.exploration_initial_eps,
@@ -188,7 +186,6 @@ class DQN(OffPolicyRLModel):
             episode_successes = []
             obs = self.env.reset()
             reset = True
-            self.episode_reward = np.zeros((1,))
 
             for _ in range(total_timesteps):
                 if callback is not None:
@@ -225,8 +222,8 @@ class DQN(OffPolicyRLModel):
                 if writer is not None:
                     ep_rew = np.array([rew]).reshape((1, -1))
                     ep_done = np.array([done]).reshape((1, -1))
-                    self.episode_reward = total_episode_reward_logger(self.episode_reward, ep_rew, ep_done, writer,
-                                                                      self.num_timesteps)
+                    total_episode_reward_logger(self.episode_reward, ep_rew, ep_done, writer,
+                                                self.num_timesteps)
 
                 episode_rewards[-1] += rew
                 if done:
@@ -242,7 +239,7 @@ class DQN(OffPolicyRLModel):
                 # or if there are not enough samples in the replay buffer
                 can_sample = self.replay_buffer.can_sample(self.batch_size)
                 if can_sample and self.num_timesteps > self.learning_starts \
-                    and self.num_timesteps % self.train_freq == 0:
+                        and self.num_timesteps % self.train_freq == 0:
                     # Minimize the error in Bellman's equation on a batch sampled from replay buffer.
                     # pytype:disable=bad-unpacking
                     if self.prioritized_replay:

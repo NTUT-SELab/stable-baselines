@@ -6,8 +6,49 @@ Changelog
 For download links, please look at `Github release page <https://github.com/hill-a/stable-baselines/releases>`_.
 
 
-Pre-Release 2.9.0a0 (WIP)
+Pre-Release 2.10.0a0 (WIP)
 --------------------------
+
+Breaking Changes:
+^^^^^^^^^^^^^^^^^
+
+New Features:
+^^^^^^^^^^^^^
+- Parallelized updating and sampling from the replay buffer in DQN. (@flodorner)
+
+- Docker build script, `scripts/build_docker.sh`, can push images automatically.
+
+Bug Fixes:
+^^^^^^^^^^
+
+- Fixed Docker images via `scripts/build_docker.sh` and `Dockerfile`: GPU image now contains `tensorflow-gpu`,
+  and both images have `stable_baselines` installed in developer mode at correct directory for mounting.
+- Fixed Docker GPU run script, `scripts/run_docker_gpu.sh`, to work with new NVidia Container Toolkit.
+- Repeated calls to `RLModel.learn()` now preserve internal counters for some episode
+  logging statistics that used to be zeroed at the start of every call.
+- Fixed a bug in PPO2, ACER, A2C, and ACKTR where repeated calls to `learn(total_timesteps)` reset
+  the environment on every call, potentially biasing samples toward early episode timesteps.
+  (@shwang)
+
+  - Fixed by adding lazy property `ActorCriticRLModel.runner`. Subclasses now use lazily-generated
+    `self.runner` instead of reinitializing a new Runner every time `learn()` is called.
+
+Deprecations:
+^^^^^^^^^^^^^
+
+Others:
+^^^^^^^
+- Removed redundant return value from `a2c.utils::total_episode_reward_logger`. (@shwang)
+- Cleanup and refactoring in `common/identity_env.py` (@shwang)
+
+Documentation:
+^^^^^^^^^^^^^^
+
+
+Release 2.9.0 (2019-12-20)
+--------------------------
+
+*Reproducible results, automatic `VecEnv` wrapping, env checker and more usability improvements*
 
 Breaking Changes:
 ^^^^^^^^^^^^^^^^^
@@ -24,11 +65,19 @@ New Features:
 - Environments are automatically wrapped in a `DummyVecEnv` if needed when passing them to the model constructor
 - Added `stable_baselines.common.make_vec_env` helper to simplify VecEnv creation
 - Added `stable_baselines.common.evaluation.evaluate_policy` helper to simplify model evaluation
-- `VecNormalize` now supports being pickled and unpickled.
+- `VecNormalize` changes:
+
+   - Now supports being pickled and unpickled (@AdamGleave).
+   - New methods `.normalize_obs(obs)` and `normalize_reward(rews)` apply normalization
+     to arbitrary observation or rewards without updating statistics (@shwang)
+   - `.get_original_reward()` returns the unnormalized rewards from the most recent timestep
+   - `.reset()` now collects observation statistics (used to only apply normalization)
+
 - Add parameter `exploration_initial_eps` to DQN. (@jdossgollin)
 - Add type checking and PEP 561 compliance.
   Note: most functions are still not annotated, this will be a gradual process.
 - DDPG, TD3 and SAC accept non-symmetric action spaces. (@Antymon)
+- Add `check_env` util to check if a custom environment follows the gym interface (@araffin and @justinkterry)
 
 Bug Fixes:
 ^^^^^^^^^^
@@ -50,6 +99,10 @@ Others:
 - Refactored test to remove duplicated code
 - Add pull request template
 - Replaced redundant code in load_results (@jbulow)
+- Minor PEP8 fixes in dqn.py (@justinkterry)
+- Add a message to the assert in `PPO2`
+- Update replay buffer doctring
+- Fix `VecEnv` docstrings
 
 Documentation:
 ^^^^^^^^^^^^^^
@@ -63,10 +116,18 @@ Documentation:
 - Add Pwnagotchi project (@evilsocket)
 - Fix multiprocessing example (@rusu24edward)
 - Fix `result_plotter` example
+- Add JNRR19 tutorial (by @edbeeching, @hill-a and @araffin)
+- Updated notebooks link
 - Fix typo in algos.rst, "containes" to "contains" (@SyllogismRXS)
 - Fix outdated source documentation for load_results
 - Add PPO_CPP project (@Antymon)
 - Add section on C++ portability of Tensorflow models (@Antymon)
+- Update custom env documentation to reflect new gym API for the `close()` method (@justinkterry)
+- Update custom env documentation to clarify what step and reset return (@justinkterry)
+- Add RL tips and tricks for doing RL experiments
+- Corrected lots of typos
+- Add spell check to documentation if available
+
 
 Release 2.8.0 (2019-09-29)
 --------------------------
@@ -381,7 +442,7 @@ Release 2.1.1 (2018-10-20)
 --------------------------
 
 - fixed MpiAdam synchronization issue in PPO1 (thanks to @brendenpetersen) issue #50
-- fixed dependency issues (new mujoco-py requires a mujoco licence + gym broke MultiDiscrete space shape)
+- fixed dependency issues (new mujoco-py requires a mujoco license + gym broke MultiDiscrete space shape)
 
 
 Release 2.1.0 (2018-10-2)
@@ -547,4 +608,5 @@ Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk
 @EliasHasle @mrakgr @Bleyddyn @antoine-galataud @junhyeokahn @AdamGleave @keshaviyengar @tperol
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
 @Miffyli @dwiel @miguelrass @qxcv @jaberkow @eavelardev @ruifeng96150 @pedrohbtp @srivatsankrishnan @evilsocket
-@MarvineGothic @jdossgollin @SyllogismRXS @rusu24edward @jbulow @Antymon @seheevic
+@MarvineGothic @jdossgollin @SyllogismRXS @rusu24edward @jbulow @Antymon @seheevic @justinkterry @edbeeching
+@flodorner

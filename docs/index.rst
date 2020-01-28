@@ -39,6 +39,7 @@ This toolset is a fork of OpenAI Baselines, with a major structural refactoring,
 
    guide/install
    guide/quickstart
+   guide/rl_tips
    guide/rl
    guide/algos
    guide/examples
@@ -81,6 +82,7 @@ This toolset is a fork of OpenAI Baselines, with a major structural refactoring,
   common/cmd_utils
   common/schedules
   common/evaluation
+  common/env_checker
 
 .. toctree::
   :maxdepth: 1

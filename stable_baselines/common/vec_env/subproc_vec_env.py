@@ -62,7 +62,8 @@ class SubprocVecEnv(VecEnv):
         ``if __name__ == "__main__":`` block.
         For more information, see the multiprocessing documentation.
 
-    :param env_fns: ([Gym Environment]) Environments to run in subprocesses
+    :param env_fns: ([callable]) A list of functions that will create the environments
+        (each callable returns a `Gym.Env` instance when called).
     :param start_method: (str) method used to start the subprocesses.
            Must be one of the methods returned by multiprocessing.get_all_start_methods().
            Defaults to 'forkserver' on available platforms, and 'spawn' otherwise.
@@ -86,7 +87,7 @@ class SubprocVecEnv(VecEnv):
         for work_remote, remote, env_fn in zip(self.work_remotes, self.remotes, env_fns):
             args = (work_remote, remote, CloudpickleWrapper(env_fn))
             # daemon=True: if the main process crashes, we should not cause things to hang
-            process = ctx.Process(target=_worker, args=args, daemon=True)
+            process = ctx.Process(target=_worker, args=args, daemon=True)  # pytype:disable=attribute-error
             process.start()
             self.processes.append(process)
             work_remote.close()

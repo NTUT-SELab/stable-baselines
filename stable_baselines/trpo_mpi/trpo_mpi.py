@@ -97,7 +97,6 @@ class TRPO(ActorCriticRLModel):
         self.initial_state = None
         self.params = None
         self.summary = None
-        self.episode_reward = None
 
         if _init_setup_model:
             self.setup_model()
@@ -287,7 +286,6 @@ class TRPO(ActorCriticRLModel):
                 t_start = time.time()
                 len_buffer = deque(maxlen=40)  # rolling buffer for episode lengths
                 reward_buffer = deque(maxlen=40)  # rolling buffer for episode rewards
-                self.episode_reward = np.zeros((self.n_envs,))
 
                 true_reward_buffer = None
                 if self.using_gail:
@@ -340,11 +338,11 @@ class TRPO(ActorCriticRLModel):
 
                         # true_rew is the reward without discount
                         if writer is not None:
-                            self.episode_reward = total_episode_reward_logger(self.episode_reward,
-                                                                              seg["true_rewards"].reshape(
-                                                                                  (self.n_envs, -1)),
-                                                                              seg["dones"].reshape((self.n_envs, -1)),
-                                                                              writer, self.num_timesteps)
+                            total_episode_reward_logger(self.episode_reward,
+                                                        seg["true_rewards"].reshape(
+                                                            (self.n_envs, -1)),
+                                                        seg["dones"].reshape((self.n_envs, -1)),
+                                                        writer, self.num_timesteps)
 
                         args = seg["observations"], seg["observations"], seg["actions"], atarg
                         # Subsampling: see p40-42 of John Schulman thesis
