@@ -223,7 +223,7 @@ class ACKTR(ActorCriticRLModel):
 
                 self.summary = tf.summary.merge_all()
 
-    def _train_step(self, obs, states, rewards, masks, actions, values, action_masks, update, writer):
+    def _train_step(self, obs, states, rewards, masks, actions, values, update, writer):
         """
         applies a training step to the model
 
@@ -233,7 +233,6 @@ class ACKTR(ActorCriticRLModel):
         :param masks: ([bool]) Whether or not the episode is over (used for recurrent policies)
         :param actions: ([float]) The actions taken
         :param values: ([float]) The logits values
-        :param action_masks: (np.ndarray) Mask invalid actions
         :param update: (int) the current step iteration
         :param writer: (TensorFlow Summary.writer) the writer for tensorboard
         :return: (float, float, float) policy loss, value loss, policy entropy
@@ -258,7 +257,6 @@ class ACKTR(ActorCriticRLModel):
             self.actions_ph: actions,
             self.advs_ph: advs,
             self.rewards_ph: rewards,
-            self.train_model.action_mask_ph: action_masks,
             self.learning_rate_ph: current_lr
         }
 
@@ -334,13 +332,13 @@ class ACKTR(ActorCriticRLModel):
                 # true_reward is the reward without discount
                 if isinstance(self.runner, PPO2Runner):
                     # We are using GAE
-                    obs, returns, masks, actions, values, _, states, ep_infos, true_reward, action_masks = self.runner.run()
+                    obs, returns, masks, actions, values, _, states, ep_infos, true_reward, _ = self.runner.run()
                 else:
-                    obs, states, returns, masks, actions, values, ep_infos, true_reward, action_masks = self.runner.run()
+                    obs, states, returns, masks, actions, values, ep_infos, true_reward, _ = self.runner.run()
                 # pytype:enable=bad-unpacking
 
                 self.ep_info_buf.extend(ep_infos)
-                policy_loss, value_loss, policy_entropy = self._train_step(obs, states, returns, masks, actions, values, action_masks,
+                policy_loss, value_loss, policy_entropy = self._train_step(obs, states, returns, masks, actions, values,
                                                                            self.num_timesteps // (self.n_batch + 1),
                                                                            writer)
                 n_seconds = time.time() - t_start
