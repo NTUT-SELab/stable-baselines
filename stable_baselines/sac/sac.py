@@ -1,6 +1,5 @@
 import sys
 import time
-from collections import deque
 import warnings
 
 import numpy as np
@@ -105,7 +104,6 @@ class SAC(OffPolicyRLModel):
         self.value_fn = None
         self.graph = None
         self.replay_buffer = None
-        self.episode_reward = None
         self.sess = None
         self.tensorboard_log = tensorboard_log
         self.verbose = verbose
@@ -176,7 +174,7 @@ class SAC(OffPolicyRLModel):
                     # Create the policy
                     # first return value corresponds to deterministic actions
                     # policy_out corresponds to stochastic actions, used for training
-                    # logp_pi is the log probabilty of actions taken by the policy
+                    # logp_pi is the log probability of actions taken by the policy
                     self.deterministic_action, policy_out, logp_pi = self.policy_tf.make_actor(self.processed_obs_ph)
                     # Monitor the entropy of the policy,
                     # this is not used for training
@@ -250,7 +248,7 @@ class SAC(OffPolicyRLModel):
                     policy_kl_loss = tf.reduce_mean(self.ent_coef * logp_pi - qf1_pi)
 
                     # NOTE: in the original implementation, they have an additional
-                    # regularization loss for the gaussian parameters
+                    # regularization loss for the Gaussian parameters
                     # this is not used for now
                     # policy_loss = (policy_kl_loss + policy_regularization_loss)
                     policy_loss = policy_kl_loss
@@ -390,8 +388,6 @@ class SAC(OffPolicyRLModel):
             if self.action_noise is not None:
                 self.action_noise.reset()
             obs = self.env.reset()
-            self.episode_reward = np.zeros((1,))
-            ep_info_buf = deque(maxlen=100)
             n_updates = 0
             infos_values = []
 
@@ -431,14 +427,14 @@ class SAC(OffPolicyRLModel):
                 # Retrieve reward and episode length if using Monitor wrapper
                 maybe_ep_info = info.get('episode')
                 if maybe_ep_info is not None:
-                    ep_info_buf.extend([maybe_ep_info])
+                    self.ep_info_buf.extend([maybe_ep_info])
 
                 if writer is not None:
                     # Write reward per episode to tensorboard
                     ep_reward = np.array([reward]).reshape((1, -1))
                     ep_done = np.array([done]).reshape((1, -1))
-                    self.episode_reward = total_episode_reward_logger(self.episode_reward, ep_reward,
-                                                                      ep_done, writer, self.num_timesteps)
+                    total_episode_reward_logger(self.episode_reward, ep_reward,
+                                                ep_done, writer, self.num_timesteps)
 
                 if step % self.train_freq == 0:
                     mb_infos_vals = []
@@ -487,9 +483,9 @@ class SAC(OffPolicyRLModel):
                     fps = int(step / (time.time() - start_time))
                     logger.logkv("episodes", num_episodes)
                     logger.logkv("mean 100 episode reward", mean_reward)
-                    if len(ep_info_buf) > 0 and len(ep_info_buf[0]) > 0:
-                        logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in ep_info_buf]))
-                        logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in ep_info_buf]))
+                    if len(self.ep_info_buf) > 0 and len(self.ep_info_buf[0]) > 0:
+                        logger.logkv('ep_rewmean', safe_mean([ep_info['r'] for ep_info in self.ep_info_buf]))
+                        logger.logkv('eplenmean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
                     logger.logkv("n_updates", n_updates)
                     logger.logkv("current_lr", current_lr)
                     logger.logkv("fps", fps)
@@ -510,7 +506,7 @@ class SAC(OffPolicyRLModel):
             raise ValueError("Error: SAC does not have action probabilities.")
 
         warnings.warn("Even though SAC has a Gaussian policy, it cannot return a distribution as it "
-                      "is squashed by a tanh before being scaled and ouputed.")
+                      "is squashed by a tanh before being scaled and outputed.")
 
         return None
 

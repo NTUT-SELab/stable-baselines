@@ -82,7 +82,6 @@ class PPO1(ActorCriticRLModel):
         self.proba_step = None
         self.initial_state = None
         self.summary = None
-        self.episode_reward = None
 
         if _init_setup_model:
             self.setup_model()
@@ -221,8 +220,6 @@ class PPO1(ActorCriticRLModel):
                 # rolling buffer for episode rewards
                 rewbuffer = deque(maxlen=100)
 
-                self.episode_reward = np.zeros((self.n_envs,))
-
                 while True:
                     if callback is not None:
                         # Only stop training if return value is False, not when it is None. This is for backwards
@@ -250,10 +247,10 @@ class PPO1(ActorCriticRLModel):
 
                     # true_rew is the reward without discount
                     if writer is not None:
-                        self.episode_reward = total_episode_reward_logger(self.episode_reward,
-                                                                          seg["true_rewards"].reshape((self.n_envs, -1)),
-                                                                          seg["dones"].reshape((self.n_envs, -1)),
-                                                                          writer, self.num_timesteps)
+                        total_episode_reward_logger(self.episode_reward,
+                                                    seg["true_rewards"].reshape((self.n_envs, -1)),
+                                                    seg["dones"].reshape((self.n_envs, -1)),
+                                                    writer, self.num_timesteps)
 
                     # predicted value function before udpate
                     vpredbefore = seg["vpred"]
