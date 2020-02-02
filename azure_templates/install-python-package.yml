@@ -3,5 +3,5 @@ steps:
     python -m pip install --upgrade pip --user
     python -m pip install --upgrade setuptools
     python -m pip install tensorflow==1.14.0
-    python -m pip install -e .[mpi,tests]
+    python -m pip install -e .[mpi,tests,docs]
   displayName: 'Install python package'
