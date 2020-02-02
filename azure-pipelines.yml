@@ -1,7 +1,11 @@
 pool:
   vmImage: 'windows-latest'
 
+variables:
+  PYTHON_VERSION: 3.5
+
 jobs:
-- template: azure_templates/install_msmpi.yml
+- template: azure_templates/run-test.yml
   parameters:
-    name: 'TestInstallMSMPI'
+    name: 'TestInstallPackage'
+    PYTHON_VERSION: $(PYTHON_VERSION)

@@ -1,0 +1,8 @@
+jobs:
+- job: ${{ parameters.name }}
+  steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: ${{ parameters.PYTHON_VERSION }}
+  - template: install-msmpi.yml
+  - template: install-python-package.yml
