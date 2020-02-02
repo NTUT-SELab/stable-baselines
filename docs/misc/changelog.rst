@@ -40,6 +40,7 @@ Others:
 ^^^^^^^
 - Removed redundant return value from `a2c.utils::total_episode_reward_logger`. (@shwang)
 - Cleanup and refactoring in `common/identity_env.py` (@shwang)
+- Add windows CI (@ChengYen-Tang)
 
 Documentation:
 ^^^^^^^^^^^^^^
@@ -609,4 +610,4 @@ Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
 @Miffyli @dwiel @miguelrass @qxcv @jaberkow @eavelardev @ruifeng96150 @pedrohbtp @srivatsankrishnan @evilsocket
 @MarvineGothic @jdossgollin @SyllogismRXS @rusu24edward @jbulow @Antymon @seheevic @justinkterry @edbeeching
-@flodorner
+@flodorner @ChengYen-Tang
