@@ -2,7 +2,7 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  PYTHON_VERSION: 3.5
+  PYTHON_VERSION: 3.6
 
 jobs:
 - template: azure_templates/run-test.yml
@@ -32,14 +32,14 @@ jobs:
     GLOB: '[m-r]*'
 - template: azure_templates/run-test.yml
   parameters:
-    name: 'UnitTests_sa'
+    name: 'UnitTests_s'
     PYTHON_VERSION: $(PYTHON_VERSION)
-    GLOB: 'sa*'
+    GLOB: 's*'
 - template: azure_templates/run-test.yml
   parameters:
-    name: 'UnitTests_sb_z'
+    name: 'UnitTests_t_z'
     PYTHON_VERSION: $(PYTHON_VERSION)
-    GLOB: '[sb-z]*'
+    GLOB: '[t-z]*'
 - template: azure_templates/run-test.yml
   parameters:
     name: 'UnitTests_determinism'
