@@ -7,5 +7,6 @@ variables:
 jobs:
 - template: azure_templates/run-test.yml
   parameters:
-    name: 'TestInstallPackage'
+    name: 'UnitTests_a'
     PYTHON_VERSION: $(PYTHON_VERSION)
+    GLOB: 'a*'
