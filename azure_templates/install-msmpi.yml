@@ -6,4 +6,4 @@ steps:
         Invoke-WebRequest "https://github.com/microsoft/Microsoft-MPI/releases/download/v10.1.1/msmpisetup.exe" -OutFile $pwd\msmpisetup.exe ;
         Start-Process $pwd\msmpisetup.exe -ArgumentList '-unattend' -Wait ;
         Remove-Item $pwd\msmpisetup.exe -Force ;
-        Get-CimInstance -Class Win32_Product
+        Get-CimInstance -Class Win32_Product | Where-Object Name -like "Microsoft MPI*"
