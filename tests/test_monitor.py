@@ -15,7 +15,7 @@ def test_monitor():
     """
     env = gym.make("CartPole-v1")
     env.seed(0)
-    mon_file = "/tmp/stable_baselines-test-{}.monitor.csv".format(uuid.uuid4())
+    mon_file = "./stable_baselines-test-{}.monitor.csv".format(uuid.uuid4())
     menv = Monitor(env, mon_file)
     menv.reset()
     for _ in range(1000):
