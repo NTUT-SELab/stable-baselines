@@ -6,5 +6,6 @@ jobs:
       versionSpec: ${{ parameters.PYTHON_VERSION }}
   - template: install-msmpi.yml
   - template: install-python-package.yml
-  - script: bash -c "python -m pytest --cov-config .coveragerc --cov-report term --cov=. -v tests/test_${{ parameters.GLOB }}"
-    displayName: 'Run test'
+  - task: CmdLine@2
+    inputs:
+      script: bash -c "python -m pytest --cov-config .coveragerc --cov-report term --cov=. -v tests/test_${{ parameters.GLOB }}"
