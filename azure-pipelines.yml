@@ -7,6 +7,6 @@ variables:
 jobs:
 - template: azure_templates/run-test.yml
   parameters:
-    name: 'UnitTests_a'
+    name: 'UnitTests_a_h'
     PYTHON_VERSION: $(PYTHON_VERSION)
-    GLOB: 'a*'
+    GLOB: '[a-h]*'
