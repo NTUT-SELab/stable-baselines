@@ -1,0 +1,7 @@
+pool:
+  vmImage: 'windows-latest'
+
+jobs:
+- template: azure_templates/install_msmpi.yml
+  parameters:
+    name: 'TestInstallMSMPI'
