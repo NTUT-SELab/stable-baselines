@@ -8,12 +8,12 @@ from gym.spaces import Box, Discrete
 from stable_baselines import logger
 from stable_baselines.a2c.a2c import A2CRunner
 from stable_baselines.ppo2.ppo2 import Runner as PPO2Runner
-from stable_baselines.a2c.utils import Scheduler, mse, \
-    total_episode_reward_logger
+from stable_baselines.common.tf_util import mse, total_episode_reward_logger
 from stable_baselines.acktr import kfac
+from stable_baselines.common.schedules import Scheduler
 from stable_baselines.common import explained_variance, ActorCriticRLModel, tf_util, SetVerbosity, TensorboardWriter
 from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCriticPolicy
-from stable_baselines.ppo2.ppo2 import safe_mean
+from stable_baselines.common.math_util import safe_mean
 
 
 class ACKTR(ActorCriticRLModel):
@@ -289,6 +289,7 @@ class ACKTR(ActorCriticRLModel):
               reset_num_timesteps=True):
 
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
+        callback = self._init_callback(callback)
 
         with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
                 as writer:
@@ -329,15 +330,28 @@ class ACKTR(ActorCriticRLModel):
             else:
                 enqueue_threads = []
 
+            callback.on_training_start(locals(), globals())
+
             for update in range(1, total_timesteps // self.n_batch + 1):
+
+                callback.on_rollout_start()
+
                 # pytype:disable=bad-unpacking
                 # true_reward is the reward without discount
                 if isinstance(self.runner, PPO2Runner):
                     # We are using GAE
-                    obs, returns, masks, actions, values, _, states, ep_infos, true_reward, action_masks = self.runner.run()
+                    rollout = self.runner.run(callback)
+                    obs, returns, masks, actions, values, _, states, ep_infos, true_reward, action_masks = rollout
                 else:
-                    obs, states, returns, masks, actions, values, ep_infos, true_reward, action_masks = self.runner.run()
+                    rollout = self.runner.run(callback)
+                    obs, states, returns, masks, actions, values, ep_infos, true_reward, action_masks = rollout
                 # pytype:enable=bad-unpacking
+
+                callback.on_rollout_end()
+
+                # Early stopping due to the callback
+                if not self.runner.continue_training:
+                    break
 
                 self.ep_info_buf.extend(ep_infos)
                 policy_loss, value_loss, policy_entropy = self._train_step(obs, states, returns, masks, actions, values, action_masks,
@@ -352,11 +366,6 @@ class ACKTR(ActorCriticRLModel):
                                                 masks.reshape((self.n_envs, self.n_steps)),
                                                 writer, self.num_timesteps)
 
-                if callback is not None:
-                    # Only stop training if return value is False, not when it is None. This is for backwards
-                    # compatibility with callbacks that have no return statement.
-                    if callback(locals(), globals()) is False:
-                        break
 
                 if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                     explained_var = explained_variance(values, returns)
@@ -372,11 +381,10 @@ class ACKTR(ActorCriticRLModel):
                         logger.logkv('ep_len_mean', safe_mean([ep_info['l'] for ep_info in self.ep_info_buf]))
                     logger.dump_tabular()
 
-                self.num_timesteps += self.n_batch + 1
-
             coord.request_stop()
             coord.join(enqueue_threads)
 
+        callback.on_training_end()
         return self
 
     def save(self, save_path, cloudpickle=False):

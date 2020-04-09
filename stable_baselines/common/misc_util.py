@@ -71,3 +71,12 @@ def flatten_action_mask(action_space, env_action_mask):
         return np.ones(action_space.n)
 
     return None
+
+def flatten_lists(listoflists):
+    """
+    Flatten a python list of list
+
+    :param listoflists: (list(list))
+    :return: (list)
+    """
+    return [el for list_ in listoflists for el in list_]
