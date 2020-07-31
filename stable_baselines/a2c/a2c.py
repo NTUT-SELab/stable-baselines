@@ -44,6 +44,7 @@ class A2C(ActorCriticRLModel):
     :param max_grad_norm: (float) The maximum value for the gradient clipping
     :param learning_rate: (float) The learning rate
     :param alpha: (float)  RMSProp decay parameter (default: 0.99)
+    :param momentum: (float) RMSProp momentum parameter (default: 0.0)
     :param epsilon: (float) RMSProp epsilon (stabilizes square root computation in denominator of RMSProp update)
         (default: 1e-5)
     :param lr_schedule: (str) The type of scheduler for the learning rate update ('linear', 'constant',
@@ -63,8 +64,8 @@ class A2C(ActorCriticRLModel):
     """
 
     def __init__(self, policy, env, gamma=0.99, n_steps=5, vf_coef=0.25, ent_coef=0.01, max_grad_norm=0.5,
-                 learning_rate=7e-4, alpha=0.99, epsilon=1e-5, lr_schedule='constant', verbose=0,
-                 tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
+                 learning_rate=7e-4, alpha=0.99, momentum=0.0, epsilon=1e-5, lr_schedule='constant',
+                 verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
 
         self.n_steps = n_steps
@@ -73,6 +74,7 @@ class A2C(ActorCriticRLModel):
         self.ent_coef = ent_coef
         self.max_grad_norm = max_grad_norm
         self.alpha = alpha
+        self.momentum = momentum
         self.epsilon = epsilon
         self.lr_schedule = lr_schedule
         self.learning_rate = learning_rate
@@ -180,7 +182,7 @@ class A2C(ActorCriticRLModel):
                             tf.summary.histogram('observation', train_model.obs_ph)
 
                 trainer = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate_ph, decay=self.alpha,
-                                                    epsilon=self.epsilon)
+                                                    epsilon=self.epsilon, momentum=self.momentum)
                 self.apply_backprop = trainer.apply_gradients(grads)
 
                 self.train_model = train_model
@@ -263,7 +265,7 @@ class A2C(ActorCriticRLModel):
                 rollout = self.runner.run(callback)
                 # unpack
                 obs, states, rewards, masks, actions, values, ep_infos, true_reward, action_masks = rollout
-
+                callback.update_locals(locals())
                 callback.on_rollout_end()
 
                 # Early stopping due to the callback
@@ -281,7 +283,6 @@ class A2C(ActorCriticRLModel):
                                                 true_reward.reshape((self.n_envs, self.n_steps)),
                                                 masks.reshape((self.n_envs, self.n_steps)),
                                                 writer, self.num_timesteps)
-
 
                 if self.verbose >= 1 and (update % log_interval == 0 or update == 1):
                     explained_var = explained_variance(values, rewards)
@@ -376,6 +377,7 @@ class A2CRunner(AbstractEnvRunner):
 
             if self.callback is not None:
                 # Abort training early
+                self.callback.update_locals(locals())
                 if self.callback.on_step() is False:
                     self.continue_training = False
                     # Return dummy values

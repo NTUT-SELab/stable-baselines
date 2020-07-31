@@ -893,7 +893,7 @@ class ActorCriticRLModel(BaseRLModel):
                 std = np.exp(logstd)
 
                 n_elts = np.prod(mean.shape[1:])  # first dimension is batch size
-                log_normalizer = n_elts/2 * np.log(2 * np.pi) + 1/2 * np.sum(logstd, axis=1)
+                log_normalizer = n_elts / 2 * np.log(2 * np.pi) + 0.5 * np.sum(logstd, axis=1)
 
                 # Diagonal Gaussian action probability, for every action
                 logprob = -np.sum(np.square(actions - mean) / (2 * std), axis=1) - log_normalizer
@@ -994,6 +994,31 @@ class OffPolicyRLModel(BaseRLModel):
 
         self.replay_buffer = replay_buffer
 
+    def is_using_her(self) -> bool:
+        """
+        Check if is using HER
+
+        :return: (bool) Whether is using HER or not
+        """
+        # Avoid circular import
+        from stable_baselines.her.replay_buffer import HindsightExperienceReplayWrapper
+        return isinstance(self.replay_buffer, HindsightExperienceReplayWrapper)
+
+    def replay_buffer_add(self, obs_t, action, reward, obs_tp1, done, info):
+        """
+        Add a new transition to the replay buffer
+
+        :param obs_t: (np.ndarray) the last observation
+        :param action: ([float]) the action
+        :param reward: (float) the reward of the transition
+        :param obs_tp1: (np.ndarray) the new observation
+        :param done: (bool) is the episode done
+        :param info: (dict) extra values used to compute the reward when using HER
+        """
+        # Pass info dict when using HER, as it can be used to compute the reward
+        kwargs = dict(info=info) if self.is_using_her() else {}
+        self.replay_buffer.add(obs_t, action, reward, obs_tp1, float(done), **kwargs)
+
     @abstractmethod
     def setup_model(self):
         pass
@@ -1047,6 +1072,7 @@ class OffPolicyRLModel(BaseRLModel):
         model.load_parameters(params)
 
         return model
+
 
 class _UnvecWrapper(VecEnvWrapper):
     def __init__(self, venv):

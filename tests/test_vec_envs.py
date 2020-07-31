@@ -40,6 +40,10 @@ class CustomGymEnv(gym.Env):
         self.state = self.observation_space.sample()
 
     def render(self, mode='human'):
+        if mode == 'rgb_array':
+            return np.zeros((4, 4, 3))
+
+    def seed(self, seed=None):
         pass
 
     @staticmethod
@@ -69,6 +73,12 @@ def test_vecenv_custom_calls(vec_env_class, vec_env_wrapper):
         else:
             vec_env = vec_env_wrapper(vec_env)
 
+    # Test seed method
+    vec_env.seed(0)
+    # Test render method call
+    # vec_env.render()  # we need a X server  to test the "human" mode
+    vec_env.render(mode='rgb_array')
+
     env_method_results = vec_env.env_method('custom_method', 1, indices=None, dim_1=2)
     setattr_results = []
     # Set current_step to an arbitrary value
@@ -91,7 +101,6 @@ def test_vecenv_custom_calls(vec_env_class, vec_env_wrapper):
     assert (env_method_subset[0] == np.ones((1, 3))).all()
     assert (env_method_subset[1] == np.ones((1, 3))).all()
     assert len(env_method_subset) == 2
-
 
     # Test to change value for all the environments
     setattr_result = vec_env.set_attr('current_step', 42, indices=None)
@@ -192,6 +201,7 @@ SPACES = collections.OrderedDict([
     ('multibinary', gym.spaces.MultiBinary(3)),
     ('continuous', gym.spaces.Box(low=np.zeros(2), high=np.ones(2))),
 ])
+
 
 def check_vecenv_spaces(vec_env_class, space, obs_assert):
     """Helper method to check observation spaces in vectorized environments."""
@@ -301,10 +311,12 @@ class CustomWrapperB(VecNormalize):
     def name_test(self):
         return self.__class__
 
+
 class CustomWrapperBB(CustomWrapperB):
     def __init__(self, venv):
         CustomWrapperB.__init__(self, venv)
         self.var_bb = 'bb'
+
 
 def test_vecenv_wrapper_getattr():
     def make_env():

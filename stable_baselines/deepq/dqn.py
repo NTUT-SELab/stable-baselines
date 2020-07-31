@@ -221,6 +221,7 @@ class DQN(OffPolicyRLModel):
                 self.num_timesteps += 1
 
                 # Stop training if return value is False
+                callback.update_locals(locals())
                 if callback.on_step() is False:
                     break
 
@@ -232,7 +233,7 @@ class DQN(OffPolicyRLModel):
                     # Avoid changing the original ones
                     obs_, new_obs_, reward_ = obs, new_obs, rew
                 # Store transition in the replay buffer.
-                self.replay_buffer.add(obs_, action, reward_, new_obs_, float(done))
+                self.replay_buffer_add(obs_, action, reward_, new_obs_, done, info)
                 obs = new_obs
                 # Save the unnormalized observation
                 if self._vec_normalize_env is not None:

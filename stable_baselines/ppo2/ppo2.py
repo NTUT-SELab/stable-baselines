@@ -13,6 +13,7 @@ from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
 
+
 class PPO2(ActorCriticRLModel):
     """
     Proximal Policy Optimization algorithm (GPU version).
@@ -173,7 +174,6 @@ class PPO2(ActorCriticRLModel):
                             tf.clip_by_value(train_model.value_flat - self.old_vpred_ph,
                                              - self.clip_range_vf_ph, self.clip_range_vf_ph)
 
-
                     vf_losses1 = tf.square(vpred - self.rewards_ph)
                     vf_losses2 = tf.square(vpred_clipped - self.rewards_ph)
                     self.vf_loss = .5 * tf.reduce_mean(tf.maximum(vf_losses1, vf_losses2))
@@ -278,9 +278,9 @@ class PPO2(ActorCriticRLModel):
             td_map[self.clip_range_vf_ph] = cliprange_vf
 
         if states is None:
-            update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
+            update_fac = max(self.n_batch // self.nminibatches // self.noptepochs, 1)
         else:
-            update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
+            update_fac = max(self.n_batch // self.nminibatches // self.noptepochs // self.n_steps, 1)
 
         if writer is not None:
             # run loss backprop with summary, but once every 10 runs save the metadata (memory, compute time, ...)
@@ -349,12 +349,12 @@ class PPO2(ActorCriticRLModel):
                 self.ep_info_buf.extend(ep_infos)
                 mb_loss_vals = []
                 if states is None:  # nonrecurrent version
-                    update_fac = self.n_batch // self.nminibatches // self.noptepochs + 1
+                    update_fac = max(self.n_batch // self.nminibatches // self.noptepochs, 1)
                     inds = np.arange(self.n_batch)
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(inds)
                         for start in range(0, self.n_batch, batch_size):
-                            timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_batch + epoch_num *
+                            timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_batch + start) // batch_size)
                             end = start + batch_size
                             mbinds = inds[start:end]
@@ -362,7 +362,7 @@ class PPO2(ActorCriticRLModel):
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer,
                                                                  update=timestep, cliprange_vf=cliprange_vf_now))
                 else:  # recurrent version
-                    update_fac = self.n_batch // self.nminibatches // self.noptepochs // self.n_steps + 1
+                    update_fac = max(self.n_batch // self.nminibatches // self.noptepochs // self.n_steps, 1)
                     assert self.n_envs % self.nminibatches == 0
                     env_indices = np.arange(self.n_envs)
                     flat_indices = np.arange(self.n_envs * self.n_steps).reshape(self.n_envs, self.n_steps)
@@ -370,7 +370,7 @@ class PPO2(ActorCriticRLModel):
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(env_indices)
                         for start in range(0, self.n_envs, envs_per_batch):
-                            timestep = self.num_timesteps // update_fac + ((self.noptepochs * self.n_envs + epoch_num *
+                            timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_envs + start) // envs_per_batch)
                             end = start + envs_per_batch
                             mb_env_inds = env_indices[start:end]
@@ -489,6 +489,7 @@ class Runner(AbstractEnvRunner):
 
             if self.callback is not None:
                 # Abort training early
+                self.callback.update_locals(locals())
                 if self.callback.on_step() is False:
                     self.continue_training = False
                     # Return dummy values

@@ -6,35 +6,63 @@ Changelog
 For download links, please look at `Github release page <https://github.com/hill-a/stable-baselines/releases>`_.
 
 
-Pre-Release 2.10.1a0 (WIP)
+Pre-Release 2.10.1a1 (WIP)
 ---------------------------
 
 Breaking Changes:
 ^^^^^^^^^^^^^^^^^
+- ``render()`` method of ``VecEnvs`` now only accept one argument: ``mode``
 
 New Features:
 ^^^^^^^^^^^^^
+- Added momentum parameter to A2C for the embedded RMSPropOptimizer (@kantneel)
+- ActionNoise is now an abstract base class and implements ``__call__``, ``NormalActionNoise`` and ``OrnsteinUhlenbeckActionNoise`` have return types (@PartiallyTyped)
+- HER now passes info dictionary to compute_reward, allowing for the computation of rewards that are independent of the goal (@tirafesi)
 
 Bug Fixes:
 ^^^^^^^^^^
 - Fixed DDPG sampling empty replay buffer when combined with HER  (@tirafesi)
 - Fixed a bug in ``HindsightExperienceReplayWrapper``, where the openai-gym signature for ``compute_reward`` was not matched correctly (@johannes-dornheim)
-- Fixed SAC/TD3 checking time to update on learn steps instead of total steps (@solliet)
-- Added ``**kwarg`` pass through for ``reset`` method in ``atari_wrappers.FrameStack`` (@solliet)
-- Fix consistency in ``setup_model()`` for SAC, ``target_entropy`` now uses ``self.action_space`` instead of ``self.env.action_space`` (@solliet)
+- Fixed SAC/TD3 checking time to update on learn steps instead of total steps (@PartiallyTyped)
+- Added ``**kwarg`` pass through for ``reset`` method in ``atari_wrappers.FrameStack`` (@PartiallyTyped)
+- Fix consistency in ``setup_model()`` for SAC, ``target_entropy`` now uses ``self.action_space`` instead of ``self.env.action_space`` (@PartiallyTyped)
 - Fix reward threshold in ``test_identity.py``
+- Partially fix tensorboard indexing for PPO2 (@enderdead)
+- Fixed potential bug in ``DummyVecEnv`` where ``copy()`` was used instead of ``deepcopy()``
+- Fixed a bug in ``GAIL`` where the dataloader was not available after saving, causing an error when using ``CheckpointCallback``
+- Fixed a bug in ``SAC`` where any convolutional layers were not included in the target network parameters.
+- Fixed ``render()`` method for ``VecEnvs``
+- Fixed ``seed()``` method for ``SubprocVecEnv``
+- Fixed a bug ``callback.locals`` did not have the correct values (@PartiallyTyped)
+- Fixed a bug in the ``close()`` method of ``SubprocVecEnv``, causing wrappers further down in the wrapper stack to not be closed. (@NeoExtended)
+- Fixed a bug in the ``generate_expert_traj()`` method in ``record_expert.py`` when using a non-image vectorized environment (@jbarsce)
+- Fixed a bug in CloudPickleWrapper's (used by VecEnvs) ``__setstate___`` where loading was incorrectly using ``pickle.loads`` (@shwang).
+- Fixed a bug in ``SAC`` and ``TD3`` where the log timesteps was not correct(@YangRui2015) 
+
 
 Deprecations:
 ^^^^^^^^^^^^^
 
 Others:
 ^^^^^^^
+- Added ``version.txt`` to manage version number in an easier way
+- Added ``.readthedocs.yml`` to install requirements with read the docs
+- Added a test for seeding ``SubprocVecEnv``` and rendering
 
 Documentation:
 ^^^^^^^^^^^^^^
 - Fix typos (@caburu)
 - Fix typos in PPO2 (@kvenkman)
-
+- Removed ``stable_baselines\deepq\experiments\custom_cartpole.py`` (@aakash94)
+- Added Google's motion imitation project
+- Added documentation page for monitor
+- Fixed typos and update ``VecNormalize`` example to show normalization at test-time
+- Fixed ``train_mountaincar`` description
+- Added imitation baselines project
+- Updated install instructions
+- Added Slime Volleyball project (@hardmaru)
+- Added a table of the variables accessible from the ``on_step`` function of the callbacks for each algorithm (@PartiallyTyped)
+- Fix typo in README.md (@ColinLeongUDRI)
 
 Release 2.10.0 (2020-03-11)
 ---------------------------
@@ -79,7 +107,7 @@ New Features:
 - Added ``unwrap_vec_normalize`` and ``sync_envs_normalization`` in the ``vec_env`` module
   to synchronize two VecNormalize environment
 - Added a seeding method for vectorized environments. (@NeoExtended)
-- Added extend method to store batches of experience in ReplayBuffer. (@solliet)
+- Added extend method to store batches of experience in ReplayBuffer. (@PartiallyTyped)
 
 
 Bug Fixes:
@@ -689,4 +717,5 @@ Thanks to @bjmuld @iambenzo @iandanforth @r7vme @brendenpetersen @huvar @abhiskk
 @XMaster96 @kantneel @Pastafarianist @GerardMaggiolino @PatrickWalter214 @yutingsz @sc420 @Aaahh @billtubbs
 @Miffyli @dwiel @miguelrass @qxcv @jaberkow @eavelardev @ruifeng96150 @pedrohbtp @srivatsankrishnan @evilsocket
 @MarvineGothic @jdossgollin @SyllogismRXS @rusu24edward @jbulow @Antymon @seheevic @justinkterry @edbeeching
-@flodorner @KuKuXia @NeoExtended @solliet @mmcenta @richardwu @tirafesi @caburu @johannes-dornheim @kvenkman
+@flodorner @KuKuXia @NeoExtended @PartiallyTyped @mmcenta @richardwu @tirafesi @caburu @johannes-dornheim @kvenkman @aakash94
+@enderdead @hardmaru @jbarsce @ColinLeongUDRI @shwang @YangRui2015

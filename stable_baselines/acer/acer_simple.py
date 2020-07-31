@@ -234,7 +234,6 @@ class ACER(ActorCriticRLModel):
                                    _init_setup_model=_init_setup_model, policy_kwargs=policy_kwargs,
                                    seed=seed, n_cpu_tf_sess=n_cpu_tf_sess)
 
-
         if _init_setup_model:
             self.setup_model()
 
@@ -346,7 +345,7 @@ class ACER(ActorCriticRLModel):
                         rho_i = tf.reshape(f_i, [-1, 1]) / (self.mu_ph + eps)
                         rho_i_ = tf.reshape(f_i_, [-1, 1]) / (self.mu_ph + eps)
 
-                        qret = q_retrace(self.reward_ph, self.done_ph, q_i, value, tf.pow(rho_i, 1/self.n_act),
+                        qret = q_retrace(self.reward_ph, self.done_ph, q_i, value, tf.pow(rho_i, 1 / self.n_act),
                                          self.n_envs, self.n_steps, self.gamma)
                     else:
                         # strip off last step
@@ -580,7 +579,7 @@ class ACER(ActorCriticRLModel):
                 callback.on_rollout_start()
 
                 enc_obs, obs, actions, rewards, mus, dones, masks, action_masks = self.runner.run(callback)
-
+                callback.update_locals(locals())
                 callback.on_rollout_end()
 
                 # Early stopping due to the callback
@@ -609,7 +608,6 @@ class ACER(ActorCriticRLModel):
 
                 names_ops, values_ops = self._train_step(obs, actions, rewards, dones, mus, self.initial_state, masks,
                                                          self.num_timesteps, action_masks, writer)
-
 
                 if self.verbose >= 1 and (int(steps / self.n_batch) % log_interval == 0):
                     logger.record_tabular("total_timesteps", self.num_timesteps)
@@ -746,6 +744,7 @@ class _Runner(AbstractEnvRunner):
 
             if self.callback is not None:
                 # Abort training early
+                self.callback.update_locals(locals())
                 if self.callback.on_step() is False:
                     self.continue_training = False
                     # Return dummy values

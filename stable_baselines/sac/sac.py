@@ -1,4 +1,3 @@
-import sys
 import time
 import warnings
 
@@ -242,7 +241,6 @@ class SAC(OffPolicyRLModel):
                     # policy_loss = (policy_kl_loss + policy_regularization_loss)
                     policy_loss = policy_kl_loss
 
-
                     # Target for value fn regression
                     # We update the vf towards the min of two Q-functions in order to
                     # reduce overestimation bias from function approximation error.
@@ -260,8 +258,8 @@ class SAC(OffPolicyRLModel):
                     value_optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate_ph)
                     values_params = tf_util.get_trainable_vars('model/values_fn')
 
-                    source_params = tf_util.get_trainable_vars("model/values_fn/vf")
-                    target_params = tf_util.get_trainable_vars("target/values_fn/vf")
+                    source_params = tf_util.get_trainable_vars("model/values_fn")
+                    target_params = tf_util.get_trainable_vars("target/values_fn")
 
                     # Polyak averaging for target variables
                     self.target_update_op = [
@@ -306,7 +304,7 @@ class SAC(OffPolicyRLModel):
 
                 # Retrieve parameters that must be saved
                 self.params = tf_util.get_trainable_vars("model")
-                self.target_params = tf_util.get_trainable_vars("target/values_fn/vf")
+                self.target_params = tf_util.get_trainable_vars("target/values_fn")
 
                 # Initialize Variables and target network
                 with self.sess.as_default():
@@ -415,6 +413,7 @@ class SAC(OffPolicyRLModel):
 
                 # Only stop training if return value is False, not when it is None. This is for backwards
                 # compatibility with callbacks that have no return statement.
+                callback.update_locals(locals())
                 if callback.on_step() is False:
                     break
 
@@ -427,7 +426,7 @@ class SAC(OffPolicyRLModel):
                     obs_, new_obs_, reward_ = obs, new_obs, reward
 
                 # Store transition in the replay buffer.
-                self.replay_buffer.add(obs_, action, reward_, new_obs_, float(done))
+                self.replay_buffer_add(obs_, action, reward_, new_obs_, done, info)
                 obs = new_obs
                 # Save the unnormalized observation
                 if self._vec_normalize_env is not None:
@@ -489,9 +488,10 @@ class SAC(OffPolicyRLModel):
                 else:
                     mean_reward = round(float(np.mean(episode_rewards[-101:-1])), 1)
 
-                num_episodes = len(episode_rewards)
+                # substract 1 as we appended a new term just now
+                num_episodes = len(episode_rewards) - 1 
                 # Display training infos
-                if self.verbose >= 1 and done and log_interval is not None and len(episode_rewards) % log_interval == 0:
+                if self.verbose >= 1 and done and log_interval is not None and num_episodes % log_interval == 0:
                     fps = int(step / (time.time() - start_time))
                     logger.logkv("episodes", num_episodes)
                     logger.logkv("mean 100 episode reward", mean_reward)
@@ -530,7 +530,7 @@ class SAC(OffPolicyRLModel):
         observation = observation.reshape((-1,) + self.observation_space.shape)
         actions = self.policy_tf.step(observation, deterministic=deterministic)
         actions = actions.reshape((-1,) + self.action_space.shape)  # reshape to the correct action shape
-        actions = unscale_action(self.action_space, actions) # scale the output for the prediction
+        actions = unscale_action(self.action_space, actions)  # scale the output for the prediction
 
         if not vectorized_env:
             actions = actions[0]
