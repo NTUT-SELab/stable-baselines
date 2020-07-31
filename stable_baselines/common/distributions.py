@@ -334,9 +334,9 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
         exp_logits = tf.multiply(exp_logits, self.action_mask_ph)
         softmax = exp_logits / tf.reduce_sum(exp_logits, axis=-1, keepdims=True)
 
-        # softmax: [4, 0, 2, 3]
+        # softmax: [0.5, 0, 0.2, 0.3]
         # action_mask: [1, 0, 1, 1]
-        # new_softmax: [4, 1, 2, 3]
+        # new_softmax: [0.5, 1, 0.2, 0.3]
         softmax = tf.add(softmax, tf.cast(tf.logical_not(tf.cast(self.action_mask_ph, dtype=tf.bool)), dtype=tf.float32))
 
         softmax_log = -tf.log(softmax)
