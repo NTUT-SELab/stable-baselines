@@ -54,7 +54,7 @@ class PPO2(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, restore=False):
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
@@ -69,6 +69,7 @@ class PPO2(ActorCriticRLModel):
         self.noptepochs = noptepochs
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
+        self.restore = restore
 
         self.action_ph = None
         self.advs_ph = None
@@ -341,6 +342,34 @@ class PPO2(ActorCriticRLModel):
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, action_masks = rollout
 
                 callback.on_rollout_end()
+                
+                file_path = "./log/restore/batch/" + tb_log_name + "_batch_" + str(update)
+                if self.restore: 
+                    loaded_data, _ = self._load_from_file(file_path)
+                    obs = loaded_data['obs']
+                    returns = loaded_data['returns']
+                    masks = loaded_data['masks']
+                    actions = loaded_data['actions']
+                    values = loaded_data['values']
+                    neglogpacs = loaded_data['neglogpacs']
+                    states = loaded_data['states']
+                    ep_infos = loaded_data['ep_infos']
+                    true_reward = loaded_data['true_reward']
+                    action_masks = loaded_data['action_masks']
+                else:
+                    minibatch_data = {
+                        "obs":obs,
+                        "returns":returns,
+                        "masks":masks,
+                        "actions":actions,
+                        "values":values,
+                        "neglogpacs":neglogpacs,
+                        "states":states,
+                        "ep_infos":ep_infos,
+                        "true_reward":true_reward,
+                        "action_masks":action_masks
+                    }
+                    self._save_to_file(file_path, minibatch_data)
 
                 # Early stopping due to the callback
                 if not self.runner.continue_training:
@@ -352,7 +381,19 @@ class PPO2(ActorCriticRLModel):
                     update_fac = max(self.n_batch // self.nminibatches // self.noptepochs, 1)
                     inds = np.arange(self.n_batch)
                     for epoch_num in range(self.noptepochs):
+                        file_path = "./log/restore/inds/" + tb_log_name + "_inds_batch_" + str(update) + "_epoch_" \
+                                        + str(epoch_num) 
+ 
                         np.random.shuffle(inds)
+                        if self.restore:
+                            loaded_data, _ = self._load_from_file(file_path)
+                            inds = loaded_data['inds']
+                        else:
+                            inds_data = {
+                                "inds":inds
+                            }
+                            self._save_to_file(file_path, inds_data)
+
                         for start in range(0, self.n_batch, batch_size):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_batch + start) // batch_size)

@@ -1,8 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
+from stable_baselines.common import base_class
 
-def ortho_init(scale=1.0):
+weights_num = 0
+
+def ortho_init(scale=1.0, scope=None):
     """
     Orthogonal initialization for the policy weights
 
@@ -37,6 +40,20 @@ def ortho_init(scale=1.0):
         u, _, v = np.linalg.svd(gaussian_noise, full_matrices=False)
         weights = u if u.shape == flat_shape else v  # pick the one with the correct shape
         weights = weights.reshape(shape)
+        
+        global weights_num
+        file_path = './log/restore/weights/' + scope + '_' + str(weights_num)
+        is_restore = True
+        if not is_restore:
+            data = {
+                "weights":weights
+            }
+            base_class.BaseRLModel._save_to_file(file_path, data)
+        else:
+            loaded_data, _ = base_class.BaseRLModel._load_from_file(file_path)
+            weights = loaded_data['weights']
+        weights_num += 1
+
         return (scale * weights[:shape[0], :shape[1]]).astype(np.float32)
 
     return _ortho_init
@@ -119,8 +136,9 @@ def linear(input_tensor, scope, n_hidden, *, init_scale=1.0, init_bias=0.0):
     :return: (TensorFlow Tensor) fully connected layer
     """
     with tf.variable_scope(scope):
+
         n_input = input_tensor.get_shape()[1].value
-        weight = tf.get_variable("w", [n_input, n_hidden], initializer=ortho_init(init_scale))
+        weight = tf.get_variable("w", [n_input, n_hidden], initializer=ortho_init(init_scale, scope))
         bias = tf.get_variable("b", [n_hidden], initializer=tf.constant_initializer(init_bias))
         return tf.matmul(input_tensor, weight) + bias
 
