@@ -1,5 +1,5 @@
 import time
-
+import os
 import gym
 import numpy as np
 import tensorflow as tf
@@ -54,7 +54,7 @@ class PPO2(ActorCriticRLModel):
     def __init__(self, policy, env, gamma=0.99, n_steps=128, ent_coef=0.01, learning_rate=2.5e-4, vf_coef=0.5,
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
-                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, restore=False):
+                 full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, restore_step=float('inf')):
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
@@ -69,7 +69,7 @@ class PPO2(ActorCriticRLModel):
         self.noptepochs = noptepochs
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
-        self.restore = restore
+        self.restore_step = restore_step
 
         self.action_ph = None
         self.advs_ph = None
@@ -241,6 +241,16 @@ class PPO2(ActorCriticRLModel):
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
+                #Save or restore checkpoint of initialization
+                saver = tf.train.Saver()
+                self.checkpoint_path = "checkpoints"
+                if self.num_timesteps >= self.restore_step:
+                    saver.restore(self.sess, os.path.join(self.checkpoint_path, 'ckpt-' + str(self.num_timesteps)))
+                    print ("Restored!" + str(self.num_timesteps))
+                elif self.restore_step == float('inf'):
+                    saver.save(self.sess, os.path.join(self.checkpoint_path, 'ckpt'), global_step=self.num_timesteps)
+                    print ("Saved!" + str(self.num_timesteps))
+
                 self.summary = tf.summary.merge_all()
 
     def _train_step(self, learning_rate, cliprange, obs, returns, masks, actions, values, neglogpacs, action_masks, update,
@@ -344,7 +354,7 @@ class PPO2(ActorCriticRLModel):
                 callback.on_rollout_end()
                 
                 file_path = "./log/restore/batch/" + tb_log_name + "_batch_" + str(update)
-                if self.restore: 
+                if self.num_timesteps >= self.restore_step: 
                     loaded_data, _ = self._load_from_file(file_path)
                     obs = loaded_data['obs']
                     returns = loaded_data['returns']
@@ -356,7 +366,7 @@ class PPO2(ActorCriticRLModel):
                     ep_infos = loaded_data['ep_infos']
                     true_reward = loaded_data['true_reward']
                     action_masks = loaded_data['action_masks']
-                else:
+                elif self.restore_step == float('inf'):  
                     minibatch_data = {
                         "obs":obs,
                         "returns":returns,
@@ -385,10 +395,10 @@ class PPO2(ActorCriticRLModel):
                                         + str(epoch_num) 
  
                         np.random.shuffle(inds)
-                        if self.restore:
+                        if self.num_timesteps >= self.restore_step:
                             loaded_data, _ = self._load_from_file(file_path)
                             inds = loaded_data['inds']
-                        else:
+                        elif self.restore_step == float('inf'):
                             inds_data = {
                                 "inds":inds
                             }
@@ -426,6 +436,16 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
 
+                # Save or restore checkpoint
+                with self.graph.as_default():
+                    saver = tf.train.Saver()
+                    if self.num_timesteps >= self.restore_step:
+                        saver.restore(self.sess, os.path.join(self.checkpoint_path, 'ckpt-' + str(self.num_timesteps) ))
+                        print ("Restored!" + str(self.num_timesteps))
+                    elif self.restore_step == float('inf'):   
+                        saver.save(self.sess, os.path.join(self.checkpoint_path, 'ckpt'), global_step=self.num_timesteps)
+                        print ("Saved!" + str(self.num_timesteps))
+                        
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
                                                 true_reward.reshape((self.n_envs, self.n_steps)),
