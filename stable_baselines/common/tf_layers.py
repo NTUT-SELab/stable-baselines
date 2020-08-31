@@ -3,7 +3,6 @@ import tensorflow as tf
 
 from stable_baselines.common import base_class
 
-weights_num = 0
 
 def ortho_init(scale=1.0, scope=None):
     """
@@ -40,19 +39,6 @@ def ortho_init(scale=1.0, scope=None):
         u, _, v = np.linalg.svd(gaussian_noise, full_matrices=False)
         weights = u if u.shape == flat_shape else v  # pick the one with the correct shape
         weights = weights.reshape(shape)
-        
-        global weights_num
-        file_path = './log/restore/weights/' + scope + '_' + str(weights_num)
-        is_restore = True
-        if not is_restore:
-            data = {
-                "weights":weights
-            }
-            base_class.BaseRLModel._save_to_file(file_path, data)
-        else:
-            loaded_data, _ = base_class.BaseRLModel._load_from_file(file_path)
-            weights = loaded_data['weights']
-        weights_num += 1
 
         return (scale * weights[:shape[0], :shape[1]]).astype(np.float32)
 
