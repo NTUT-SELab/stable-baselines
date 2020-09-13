@@ -14,20 +14,22 @@ class CustomSaver:
         save_freq = total_batches // self.save_n_batch
         if batch_num % save_freq == 0:
             with graph.as_default():
-                saver = tf.train.Saver()
-                saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=batch_num)
+                with tf.variable_scope('', reuse=True):
+                    saver = tf.train.Saver()
+                    saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=batch_num)
 
     def restore(self, graph, sess, batch_num):
         with graph.as_default():
-            saver = tf.train.Saver()
-            try:
-                if self.only_batch != 0 and batch_num == self.only_batch:
-                    saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(batch_num)))
-                elif self.only_batch == 0 and batch_num >= self.restore_batch:
-                    saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(batch_num)))
-                    
-            except:
-                pass
+            with tf.variable_scope('', reuse=True):
+                saver = tf.train.Saver()
+                try:
+                    if self.only_batch != 0 and batch_num == self.only_batch:
+                        saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(batch_num)))
+                    elif self.only_batch == 0 and batch_num >= self.restore_batch:
+                        saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(batch_num)))
+                        
+                except:
+                    pass
 
     def save_info(self, save_fn, data, batch_num, name):
         save_fn(os.path.join(self.info_path, name+'_batch'+str(batch_num)), data)
