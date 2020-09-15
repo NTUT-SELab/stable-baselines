@@ -422,7 +422,9 @@ class PPO2(ActorCriticRLModel):
                             env_indices_data = {
                                 "env_indices":env_indices
                             }
+
                             self.saver.save_info(self._save_to_file, env_indices_data, update, tb_log_name + '_env_indices_'\
+
                                                                                          + str(epoch_num))
                         for start in range(0, self.n_envs, envs_per_batch):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
