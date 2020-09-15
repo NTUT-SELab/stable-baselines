@@ -413,6 +413,17 @@ class PPO2(ActorCriticRLModel):
                     envs_per_batch = batch_size // self.n_steps
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(env_indices)
+                        if not self.is_save:
+                            loaded_data, _ = self.saver.restore_info(self._load_from_file, update, tb_log_name + '_env_indices_'\
+                                                                                         + str(epoch_num))
+                            if loaded_data is not None:
+                                env_indices = loaded_data['env_indices']
+                        else:
+                            env_indices_data = {
+                                "env_indices":env_indices
+                            }
+                            self.saver.save_info(self._save_to_file, env_indices_data, update, tb_log_name + '_env_indices_'\
+                                                                                         + str(epoch_num))
                         for start in range(0, self.n_envs, envs_per_batch):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_envs + start) // envs_per_batch)
