@@ -424,7 +424,6 @@ class PPO2(ActorCriticRLModel):
                             }
 
                             self.saver.save_info(self._save_to_file, env_indices_data, update, tb_log_name + '_env_indices_'\
-
                                                                                          + str(epoch_num))
                         for start in range(0, self.n_envs, envs_per_batch):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
@@ -434,6 +433,18 @@ class PPO2(ActorCriticRLModel):
                             mb_flat_inds = flat_indices[mb_env_inds].ravel()
                             slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs, action_masks))
                             mb_states = states[mb_env_inds]
+                            if not self.is_save:
+                                loaded_data, _ = self.saver.restore_info(self._load_from_file, update, tb_log_name + '_mb_states_'\
+                                                                                            + str(epoch_num))
+                                if loaded_data is not None:
+                                    mb_states = loaded_data['mb_states']
+                            else:
+                                mb_states_data = {
+                                    "mb_states":mb_states
+                                }
+                            
+                                self.saver.save_info(self._save_to_file, mb_states_data, update, tb_log_name + '_mb_states_'\
+                                                                                                + str(epoch_num))
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, update=timestep,
                                                                  writer=writer, states=mb_states,
                                                                  cliprange_vf=cliprange_vf_now))
