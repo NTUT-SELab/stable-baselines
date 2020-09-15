@@ -360,6 +360,10 @@ class PPO2(ActorCriticRLModel):
                             ep_infos = loaded_data['ep_infos']
                             true_reward = loaded_data['true_reward']
                             action_masks = loaded_data['action_masks']
+                            lr_now = loaded_data['lr_now']
+                            cliprange_now = loaded_data['cliprange_now']
+                            cliprange_vf_now = loaded_data['cliprange_vf_now']
+
                     else:
                         minibatch_data = {
                             "obs":obs,
@@ -371,7 +375,10 @@ class PPO2(ActorCriticRLModel):
                             "states":states,
                             "ep_infos":ep_infos,
                             "true_reward":true_reward,
-                            "action_masks":action_masks
+                            "action_masks":action_masks,
+                            "lr_now":lr_now,
+                            "cliprange_now":cliprange_now,
+                            "cliprange_vf_now":cliprange_vf_now
                         }
                         self.saver.save_info(self._save_to_file, minibatch_data, update, tb_log_name + '_env')
 
