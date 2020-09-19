@@ -10,13 +10,11 @@ class CustomSaver:
         self.restore_batch = restore_batch
         self.only_batch = only_batch
         
-    def save(self, graph, sess, batch_num, total_batches):
-        save_freq = total_batches // self.save_n_batch
-        if batch_num % save_freq == 0:
-            with graph.as_default():
-                with tf.variable_scope('', reuse=True):
-                    saver = tf.train.Saver()
-                    saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=batch_num)
+    def save(self, graph, sess, batch_num, total_batches=0):
+        with graph.as_default():
+            with tf.variable_scope('', reuse=True):
+                saver = tf.train.Saver()
+                saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=batch_num)
 
     def restore(self, graph, sess, batch_num):
         with graph.as_default():
