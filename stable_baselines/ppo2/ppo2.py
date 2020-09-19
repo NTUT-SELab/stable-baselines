@@ -243,6 +243,12 @@ class PPO2(ActorCriticRLModel):
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
+                 # Save or restore checkpoint
+                if self.is_save is not None:
+                    if self.is_save:
+                        self.saver.save(graph=self.graph, sess=self.sess, batch_num=0)
+                    else:
+                        self.saver.restore(graph=self.graph, sess=self.sess, batch_num=0)
 
                 self.summary = tf.summary.merge_all()
 
@@ -460,12 +466,6 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
                 
-                # Save or restore checkpoint
-                if self.is_save is not None:
-                    if self.is_save:
-                        self.saver.save(graph=self.graph, sess=self.sess, batch_num=update, total_batches=n_updates)
-                    else:
-                        self.saver.restore(graph=self.graph, sess=self.sess, batch_num=update)
                 
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
