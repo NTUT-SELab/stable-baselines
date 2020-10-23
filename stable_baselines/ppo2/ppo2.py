@@ -243,12 +243,14 @@ class PPO2(ActorCriticRLModel):
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
-                 # Save or restore checkpoint
-                if self.is_save is not None:
-                    if self.is_save:
-                        self.saver.save(graph=self.graph, sess=self.sess, global_step=0)
-                    else:
-                        self.saver.restore(graph=self.graph, sess=self.sess, global_step=0)
+                # Save or restore checkpoint
+                self.saver.build()
+
+                # if self.is_save is not None:
+                #     if self.is_save:
+                #         self.saver.save(graph=self.graph, sess=self.sess, global_step=0)
+                #     else:
+                #         self.saver.restore(graph=self.graph, sess=self.sess, global_step=0)
 
                 self.summary = tf.summary.merge_all()
 
@@ -352,26 +354,7 @@ class PPO2(ActorCriticRLModel):
 
                 callback.on_rollout_end()
                 
-                if self.is_save is not None:
-                    if not self.is_save: 
-                        loaded_data, _ = self.saver.restore_info(self._load_from_file, self.num_timesteps, tb_log_name + '_env')
-                        if loaded_data is not None:
-                            obs = loaded_data['obs']
-                            returns = loaded_data['returns']
-                            masks = loaded_data['masks']
-                            actions = loaded_data['actions']
-                            values = loaded_data['values']
-                            neglogpacs = loaded_data['neglogpacs']
-                            states = loaded_data['states']
-                            ep_infos = loaded_data['ep_infos']
-                            true_reward = loaded_data['true_reward']
-                            action_masks = loaded_data['action_masks']
-                            lr_now = loaded_data['lr_now']
-                            cliprange_now = loaded_data['cliprange_now']
-                            cliprange_vf_now = loaded_data['cliprange_vf_now']
-
-                    else:
-                        minibatch_data = {
+                minibatch_data = {
                             "obs":obs,
                             "returns":returns,
                             "masks":masks,
@@ -386,7 +369,24 @@ class PPO2(ActorCriticRLModel):
                             "cliprange_now":cliprange_now,
                             "cliprange_vf_now":cliprange_vf_now
                         }
-                        self.saver.save_info(self._save_to_file, minibatch_data, self.num_timesteps, tb_log_name + '_env')
+               
+                loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, minibatch_data, \
+                                                tb_log_name+'_setp_'+str(self.num_timesteps) + '_env')
+                if loaded_data is not None:
+                    obs = loaded_data['obs']
+                    returns = loaded_data['returns']
+                    masks = loaded_data['masks']
+                    actions = loaded_data['actions']
+                    values = loaded_data['values']
+                    neglogpacs = loaded_data['neglogpacs']
+                    states = loaded_data['states']
+                    ep_infos = loaded_data['ep_infos']
+                    true_reward = loaded_data['true_reward']
+                    action_masks = loaded_data['action_masks']
+                    lr_now = loaded_data['lr_now']
+                    cliprange_now = loaded_data['cliprange_now']
+                    cliprange_vf_now = loaded_data['cliprange_vf_now']
+
 
                 # Early stopping due to the callback
                 if not self.runner.continue_training:
@@ -399,17 +399,14 @@ class PPO2(ActorCriticRLModel):
                     inds = np.arange(self.n_batch)
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(inds)
-                        if not self.is_save:
-                            loaded_data, _ = self.saver.restore_info(self._load_from_file, self.num_timesteps, tb_log_name + '_inds_'\
-                                                                                         + str(epoch_num))
-                            if loaded_data is not None:
-                                inds = loaded_data['inds']
-                        else:
-                            inds_data = {
-                                "inds":inds
-                            }
-                            self.saver.save_info(self._save_to_file, inds_data, self.num_timesteps, tb_log_name + '_inds_'\
-                                                                                         + str(epoch_num))
+
+                        #save or restore inds
+                        inds_data = {"inds":inds}
+                        loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, inds_data, \
+                                                tb_log_name+'_setp_'+str(self.num_timesteps)+'_inds_'+str(epoch_num))
+                        if loaded_data is not None:
+                            inds = loaded_data['inds']
+
                         for start in range(0, self.n_batch, batch_size):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_batch + start) // batch_size)
@@ -426,18 +423,14 @@ class PPO2(ActorCriticRLModel):
                     envs_per_batch = batch_size // self.n_steps
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(env_indices)
-                        if not self.is_save:
-                            loaded_data, _ = self.saver.restore_info(self._load_from_file, self.num_timesteps, tb_log_name + '_env_indices_'\
-                                                                                         + str(epoch_num))
-                            if loaded_data is not None:
-                                env_indices = loaded_data['env_indices']
-                        else:
-                            env_indices_data = {
-                                "env_indices":env_indices
-                            }
 
-                            self.saver.save_info(self._save_to_file, env_indices_data, self.num_timesteps, tb_log_name + '_env_indices_'\
-                                                                                         + str(epoch_num))
+                        #save or restore env indices
+                        env_indices_data = {"env_indices":env_indices}
+                        loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, env_indices_data, \
+                                                tb_log_name+'_setp_'+str(self.num_timesteps)+'_env_indices_'+str(epoch_num))
+                        if loaded_data is not None:
+                            env_indices = loaded_data['env_indices']
+
                         for start in range(0, self.n_envs, envs_per_batch):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
                                                                             self.n_envs + start) // envs_per_batch)
@@ -446,18 +439,14 @@ class PPO2(ActorCriticRLModel):
                             mb_flat_inds = flat_indices[mb_env_inds].ravel()
                             slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs, action_masks))
                             mb_states = states[mb_env_inds]
-                            if not self.is_save:
-                                loaded_data, _ = self.saver.restore_info(self._load_from_file, self.num_timesteps, tb_log_name + '_mb_states_'\
-                                                                                            + str(epoch_num))
-                                if loaded_data is not None:
-                                    mb_states = loaded_data['mb_states']
-                            else:
-                                mb_states_data = {
-                                    "mb_states":mb_states
-                                }
-                            
-                                self.saver.save_info(self._save_to_file, mb_states_data, self.num_timesteps, tb_log_name + '_mb_states_'\
-                                                                                                + str(epoch_num))
+
+                            #save or restore mb states
+                            mb_states_data = {"mb_states":mb_states}
+                            loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, mb_states_data, \
+                                                    tb_log_name+'_setp_'+str(self.num_timesteps)+'_mb_states_'+str(epoch_num))
+                            if loaded_data is not None:
+                                mb_states = loaded_data['mb_states']
+                                
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, update=timestep,
                                                                  writer=writer, states=mb_states,
                                                                  cliprange_vf=cliprange_vf_now))
@@ -466,11 +455,6 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
                 
-                if self.is_save is not None:
-                    if self.is_save:
-                        self.saver.save(graph=self.graph, sess=self.sess, global_step=self.num_timesteps)
-                    else:
-                        self.saver.restore(graph=self.graph, sess=self.sess, global_step=self.num_timesteps)
                         
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
