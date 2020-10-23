@@ -243,14 +243,9 @@ class PPO2(ActorCriticRLModel):
                 self.initial_state = act_model.initial_state
                 tf.global_variables_initializer().run(session=self.sess)  # pylint: disable=E1101
 
-                # Save or restore checkpoint
+                # build saver
                 self.saver.build()
-
-                # if self.is_save is not None:
-                #     if self.is_save:
-                #         self.saver.save(graph=self.graph, sess=self.sess, global_step=0)
-                #     else:
-                #         self.saver.restore(graph=self.graph, sess=self.sess, global_step=0)
+                self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
 
                 self.summary = tf.summary.merge_all()
 
@@ -446,7 +441,7 @@ class PPO2(ActorCriticRLModel):
                                                     tb_log_name+'_setp_'+str(self.num_timesteps)+'_mb_states_'+str(epoch_num))
                             if loaded_data is not None:
                                 mb_states = loaded_data['mb_states']
-                                
+
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, update=timestep,
                                                                  writer=writer, states=mb_states,
                                                                  cliprange_vf=cliprange_vf_now))
