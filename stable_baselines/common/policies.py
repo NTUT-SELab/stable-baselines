@@ -245,6 +245,7 @@ class ActorCriticPolicy(BasePolicy):
             self._action = self.proba_distribution.sample()
             self._deterministic_action = self.proba_distribution.mode()
             self._neglogp = self.proba_distribution.neglogp(self.action)
+            self._actions_probability = self.proba_distribution.actions_probability
             if isinstance(self.proba_distribution, CategoricalProbabilityDistribution):
                 self._policy_proba = tf.nn.softmax(self.policy)
             elif isinstance(self.proba_distribution, DiagGaussianProbabilityDistribution):
@@ -302,6 +303,10 @@ class ActorCriticPolicy(BasePolicy):
     def policy_proba(self):
         """tf.Tensor: parameters of the probability distribution. Depends on pdtype."""
         return self._policy_proba
+
+    @property
+    def actions_probability(self):
+        return self._actions_probability
 
     @abstractmethod
     def step(self, obs, state=None, mask=None, deterministic=False, action_mask=None):
@@ -594,9 +599,9 @@ class FeedForwardPolicy(ActorCriticPolicy):
             action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
                                                    feed_dict)
         else:
-            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
+            action, actions_probability, value, neglogp = self.sess.run([self.action, self.actions_probability, self.value_flat, self.neglogp],
                                                    feed_dict)
-        return action, value, self.initial_state, neglogp
+        return action, actions_probability, value, self.initial_state, neglogp
 
     def proba_step(self, obs, state=None, mask=None, action_mask=None):
         feed_dict = {self.obs_ph: obs}

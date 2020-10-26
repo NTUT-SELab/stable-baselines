@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 class CustomSaver:
-    def __init__(self, ckpt_path, info_path, name, id=None, mode=None):
+    def __init__(self, ckpt_path, info_path, name, id=None, mode=None, from_step=0):
         """
         Initialize Sustom Saver
         :param ckpt_path: (str) path of checkpoints
@@ -20,9 +20,10 @@ class CustomSaver:
         self.name = name
         self.id = id
         self.mode = mode
+        self.from_step = from_step
 
     def build(self):
-        self.saver = tf.train.Saver()
+        self.saver = tf.train.Saver(max_to_keep=None)
         sr_id = -1
         if self.mode == 1:
             latest_ckpt_id = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
@@ -39,19 +40,20 @@ class CustomSaver:
         self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', sr_id))
         self._create_dirs()
 
-    def save_or_restore_ckpt(self, sess, global_step):
+    def save_or_restore_ckpt(self, sess, step):
         if self.mode == 1:
-            self.saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=global_step)
-        elif self.mode == 0:
+            self.saver.save(sess, os.path.join(self.ckpt_path, 'ckpt'), global_step=step)
+        elif self.mode == 0 and step >= self.from_step:
             try:
-                self.saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(global_step)))
+                self.saver.restore(sess, os.path.join(self.ckpt_path, 'ckpt-' + str(step)))
             except:
-                print (f'fail to restore ckpt-{global_step}')
+                print (f'fail to restore ckpt-{step}')
 
-    def save_or_restore_info(self, save_fn, load_fn, data, name):
+    def save_or_restore_info(self, save_fn, load_fn, data, step, name):
+        name = str(step) + '_' + name
         if self.mode == 1:
             save_fn(os.path.join(self.info_path, name), data)
-        elif self.mode == 0:
+        elif self.mode == 0 and step >= self.from_step:
             return load_fn(os.path.join(self.info_path, name))[0]
         return None
 

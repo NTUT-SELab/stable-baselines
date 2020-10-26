@@ -372,6 +372,7 @@ class CategoricalProbabilityDistribution(ProbabilityDistribution):
         # mask: 0 is valid action, -inf is invalid action
         # [1, 2, 3] add [0, -inf, 0] = [1, -inf, 3]
         probability = tf.add(probability, self.neginf_action_mask_ph)
+        self.actions_probability = probability
         return tf.argmax(probability, axis=-1)
 
     @classmethod

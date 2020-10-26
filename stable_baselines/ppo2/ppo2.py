@@ -72,7 +72,8 @@ class PPO2(ActorCriticRLModel):
         self.full_tensorboard_log = full_tensorboard_log
         self.is_save = is_save
         self.saver = saver
-
+        self.csv_writer = logger.CSVOutputFormat('step_actions_proba.csv')
+        
         self.action_ph = None
         self.advs_ph = None
         self.rewards_ph = None
@@ -366,7 +367,7 @@ class PPO2(ActorCriticRLModel):
                         }
                
                 loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, minibatch_data, \
-                                                tb_log_name+'_setp_'+str(self.num_timesteps) + '_env')
+                                                self.num_timesteps, tb_log_name+'_env')
                 if loaded_data is not None:
                     obs = loaded_data['obs']
                     returns = loaded_data['returns']
@@ -398,7 +399,7 @@ class PPO2(ActorCriticRLModel):
                         #save or restore inds
                         inds_data = {"inds":inds}
                         loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, inds_data, \
-                                                tb_log_name+'_setp_'+str(self.num_timesteps)+'_inds_'+str(epoch_num))
+                                                self.num_timesteps, tb_log_name+'_inds_'+str(epoch_num))
                         if loaded_data is not None:
                             inds = loaded_data['inds']
 
@@ -422,7 +423,7 @@ class PPO2(ActorCriticRLModel):
                         #save or restore env indices
                         env_indices_data = {"env_indices":env_indices}
                         loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, env_indices_data, \
-                                                tb_log_name+'_setp_'+str(self.num_timesteps)+'_env_indices_'+str(epoch_num))
+                                                self.num_timesteps, tb_log_name+'_env_indices_'+str(epoch_num))
                         if loaded_data is not None:
                             env_indices = loaded_data['env_indices']
 
@@ -438,7 +439,7 @@ class PPO2(ActorCriticRLModel):
                             #save or restore mb states
                             mb_states_data = {"mb_states":mb_states}
                             loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, mb_states_data, \
-                                                    tb_log_name+'_setp_'+str(self.num_timesteps)+'_mb_states_'+str(epoch_num))
+                                                    self.num_timesteps, tb_log_name+'_mb_states_'+str(epoch_num))
                             if loaded_data is not None:
                                 mb_states = loaded_data['mb_states']
 
@@ -450,7 +451,8 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
                 
-                        
+                self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
+                
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
                                                 true_reward.reshape((self.n_envs, self.n_steps)),
@@ -502,7 +504,7 @@ class PPO2(ActorCriticRLModel):
         params_to_save = self.get_parameters()
 
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
-
+        self.csv_writer.close()
 
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, n_steps, gamma, lam):
@@ -538,7 +540,7 @@ class Runner(AbstractEnvRunner):
         mb_states = self.states
         ep_infos = []
         for _ in range(self.n_steps):
-            actions, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones, action_mask=self.action_masks)
+            actions, proba, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones, action_mask=self.action_masks)
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
             mb_values.append(values)
@@ -550,9 +552,17 @@ class Runner(AbstractEnvRunner):
             if isinstance(self.env.action_space, gym.spaces.Box):
                 clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
             self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
+            
+            kvs = {'action':actions[0], 'step':self.model.num_timesteps}
+            for i in range(proba.shape[1]):
+                if proba[0, i]==float('-inf'):
+                    kvs['action'+str(i)] = '-----'
+                else:
+                    kvs['action'+str(i)] = proba[0,i]
+            self.model.csv_writer.writekvs(kvs)
 
             self.model.num_timesteps += self.n_envs
-
+            # print (f"step:{self.model.num_timesteps}, action:{actions}")
             if self.callback is not None:
                 # Abort training early
                 self.callback.update_locals(locals())
