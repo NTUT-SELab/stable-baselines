@@ -72,7 +72,6 @@ class PPO2(ActorCriticRLModel):
         self.full_tensorboard_log = full_tensorboard_log
         self.is_save = is_save
         self.saver = saver
-        self.csv_writer = logger.CSVOutputFormat('step_actions_proba.csv')
         
         self.action_ph = None
         self.advs_ph = None
@@ -246,6 +245,7 @@ class PPO2(ActorCriticRLModel):
 
                 # build saver
                 self.saver.build()
+                self.csv_writer = logger.CSVOutputFormat(self.saver.timestamp+'_step_actions_proba.csv')
                 self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
 
                 self.summary = tf.summary.merge_all()
@@ -320,7 +320,7 @@ class PPO2(ActorCriticRLModel):
         new_tb_log = self._init_num_timesteps(reset_num_timesteps)
         callback = self._init_callback(callback)
 
-        with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name, new_tb_log) \
+        with SetVerbosity(self.verbose), TensorboardWriter(self.graph, self.tensorboard_log, tb_log_name+'_'+self.saver.timestamp, new_tb_log) \
                 as writer:
             self._setup_learn()
 

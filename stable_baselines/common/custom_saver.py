@@ -27,7 +27,7 @@ class CustomSaver:
     def build(self):
         self.saver = tf.train.Saver(max_to_keep=None)
         if self.mode == 0:
-            self.timestamp = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
+            self.timestamp = str(self._get_latest_id(self.ckpt_path, self.name+'_checkpoints'))
             if self.id != None:
                 self.timestamp = self.id
         self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', self.timestamp))
