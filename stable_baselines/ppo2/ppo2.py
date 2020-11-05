@@ -562,7 +562,7 @@ class Runner(AbstractEnvRunner):
             self.model.csv_writer.writekvs(kvs)
 
             self.model.num_timesteps += self.n_envs
-            # print (f"step:{self.model.num_timesteps}, action:{actions}")
+
             if self.callback is not None:
                 # Abort training early
                 self.callback.update_locals(locals())

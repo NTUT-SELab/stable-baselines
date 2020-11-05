@@ -22,15 +22,16 @@ class CustomSaver:
         self.mode = mode
         self.from_step = from_step
 
+        self.timestamp = str(int(datetime.now().timestamp()))[3:]
+
     def build(self):
         self.saver = tf.train.Saver(max_to_keep=None)
-        timestamp = str(int(datetime.now().timestamp()))[3:]
         if self.mode == 0:
-            timestamp = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
+            self.timestamp = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
             if self.id != None:
-                timestamp = self.id
-        self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', timestamp))
-        self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', timestamp))
+                self.timestamp = self.id
+        self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', self.timestamp))
+        self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', self.timestamp))
         self._create_dirs()
 
     def save_or_restore_ckpt(self, sess, step):
