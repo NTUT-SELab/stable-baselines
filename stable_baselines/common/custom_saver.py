@@ -3,7 +3,7 @@ import tensorflow as tf
 import glob
 
 from pathlib import Path
-
+from datetime import datetime
 
 class CustomSaver:
     def __init__(self, ckpt_path, info_path, name, id=None, mode=None, from_step=0):
@@ -24,20 +24,13 @@ class CustomSaver:
 
     def build(self):
         self.saver = tf.train.Saver(max_to_keep=None)
-        sr_id = -1
-        if self.mode == 1:
-            latest_ckpt_id = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
-            latest_info_id = self._get_latest_id(self.info_path, self.name+'_info')
-            if latest_ckpt_id != latest_info_id:
-                raise ValueError("ckpt id and info id are not consistent")
-            else:
-                sr_id = latest_ckpt_id + 1
-        elif self.mode == 0:
-            sr_id = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
+        timestamp = str(int(datetime.now().timestamp()))[3:]
+        if self.mode == 0:
+            timestamp = self._get_latest_id(self.ckpt_path, self.name+'_checkpoints')
             if self.id != None:
-                sr_id = self.id
-        self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', sr_id))
-        self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', sr_id))
+                timestamp = self.id
+        self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', timestamp))
+        self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', timestamp))
         self._create_dirs()
 
     def save_or_restore_ckpt(self, sess, step):
