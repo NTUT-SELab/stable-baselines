@@ -22,14 +22,14 @@ class CustomSaver:
         self.mode = mode
         self.from_step = from_step
 
-        self.timestamp = str(int(datetime.now().timestamp()))[3:]
+        self.timestamp = str(int(datetime.now().timestamp()))
 
     def build(self):
         self.saver = tf.train.Saver(max_to_keep=None)
         if self.mode == 0:
             self.timestamp = str(self._get_latest_id(self.ckpt_path, self.name+'_checkpoints'))
             if self.id != None:
-                self.timestamp = self.id
+                self.timestamp = str(self.id)
         self.ckpt_path = os.path.join(self.ckpt_path, "{}_{}".format(self.name+'_checkpoints', self.timestamp))
         self.info_path = os.path.join(self.info_path, "{}_{}".format(self.name+'_info', self.timestamp))
         self._create_dirs()

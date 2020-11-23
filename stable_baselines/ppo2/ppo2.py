@@ -245,7 +245,7 @@ class PPO2(ActorCriticRLModel):
 
                 # build saver
                 self.saver.build()
-                self.csv_writer = logger.CSVOutputFormat(self.saver.timestamp+'_step_actions_proba.csv')
+                self.csv_writer = logger.CSVOutputFormat(self.saver.timestamp+'_log.csv')
                 self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
 
                 self.summary = tf.summary.merge_all()
@@ -541,6 +541,10 @@ class Runner(AbstractEnvRunner):
         ep_infos = []
         for _ in range(self.n_steps):
             actions, proba, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones, action_mask=self.action_masks)
+            #Mouse Position in MouseWalkingMaze
+            location = self.obs.reshape(self.obs.shape[1], self.obs.shape[2])
+            location = np.asarray(np.where(location==3)).flatten()
+            
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
             mb_values.append(values)
@@ -553,7 +557,7 @@ class Runner(AbstractEnvRunner):
                 clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
             self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
             
-            kvs = {'action':actions[0], 'step':self.model.num_timesteps}
+            kvs = {'action':actions[0], 'step':self.model.num_timesteps, 'location':location}
             for i in range(proba.shape[1]):
                 if proba[0, i]==float('-inf'):
                     kvs['action'+str(i)] = '-----'
