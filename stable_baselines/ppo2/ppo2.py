@@ -12,6 +12,7 @@ from stable_baselines.common.policies import ActorCriticPolicy, RecurrentActorCr
 from stable_baselines.common.schedules import get_schedule_fn
 from stable_baselines.common.tf_util import total_episode_reward_logger
 from stable_baselines.common.math_util import safe_mean
+from stable_baselines.common.custom_saver import Storage
 
 
 class PPO2(ActorCriticRLModel):
@@ -55,7 +56,7 @@ class PPO2(ActorCriticRLModel):
                  max_grad_norm=0.5, lam=0.95, nminibatches=4, noptepochs=4, cliprange=0.2, cliprange_vf=None,
                  verbose=0, tensorboard_log=None, _init_setup_model=True, policy_kwargs=None,
                  full_tensorboard_log=False, seed=None, n_cpu_tf_sess=None, 
-                 saver=None, is_save=None):
+                 saver=None):
 
         self.learning_rate = learning_rate
         self.cliprange = cliprange
@@ -70,8 +71,8 @@ class PPO2(ActorCriticRLModel):
         self.noptepochs = noptepochs
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
-        self.is_save = is_save
         self.saver = saver
+        self.storage = Storage(limit=10000)
         
         self.action_ph = None
         self.advs_ph = None
@@ -345,45 +346,17 @@ class PPO2(ActorCriticRLModel):
                 callback.on_rollout_start()
                 # true_reward is the reward without discount
                 rollout = self.runner.run(callback)
+
+                if self.saver.mode == 1:
+                    self.storage.store('rollout', self.num_timesteps, rollout)
+                else:
+                    self.storage = self.saver.restore_storage_from_file(self.storage)
+                    rollout = self.storage.restore('rollout', self.num_timesteps)
+
                 # Unpack
                 obs, returns, masks, actions, values, neglogpacs, states, ep_infos, true_reward, action_masks = rollout
-
                 callback.on_rollout_end()
                 
-                minibatch_data = {
-                            "obs":obs,
-                            "returns":returns,
-                            "masks":masks,
-                            "actions":actions,
-                            "values":values,
-                            "neglogpacs":neglogpacs,
-                            "states":states,
-                            "ep_infos":ep_infos,
-                            "true_reward":true_reward,
-                            "action_masks":action_masks,
-                            "lr_now":lr_now,
-                            "cliprange_now":cliprange_now,
-                            "cliprange_vf_now":cliprange_vf_now
-                        }
-               
-                loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, minibatch_data, \
-                                                self.num_timesteps, tb_log_name+'_env')
-                if loaded_data is not None:
-                    obs = loaded_data['obs']
-                    returns = loaded_data['returns']
-                    masks = loaded_data['masks']
-                    actions = loaded_data['actions']
-                    values = loaded_data['values']
-                    neglogpacs = loaded_data['neglogpacs']
-                    states = loaded_data['states']
-                    ep_infos = loaded_data['ep_infos']
-                    true_reward = loaded_data['true_reward']
-                    action_masks = loaded_data['action_masks']
-                    lr_now = loaded_data['lr_now']
-                    cliprange_now = loaded_data['cliprange_now']
-                    cliprange_vf_now = loaded_data['cliprange_vf_now']
-
-
                 # Early stopping due to the callback
                 if not self.runner.continue_training:
                     break
@@ -396,12 +369,10 @@ class PPO2(ActorCriticRLModel):
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(inds)
 
-                        #save or restore inds
-                        inds_data = {"inds":inds}
-                        loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, inds_data, \
-                                                self.num_timesteps, tb_log_name+'_inds_'+str(epoch_num))
-                        if loaded_data is not None:
-                            inds = loaded_data['inds']
+                        if self.saver.mode == 1:
+                            self.storage.store('inds', self.num_timesteps+(epoch_num/self.noptepochs), inds.copy())
+                        else:
+                            inds = self.storage.restore('inds', self.num_timesteps+(epoch_num/self.noptepochs))
 
                         for start in range(0, self.n_batch, batch_size):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
@@ -411,6 +382,7 @@ class PPO2(ActorCriticRLModel):
                             slices = (arr[mbinds] for arr in (obs, returns, masks, actions, values, neglogpacs, action_masks))
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, writer=writer,
                                                                  update=timestep, cliprange_vf=cliprange_vf_now))
+
                 else:  # recurrent version
                     update_fac = max(self.n_batch // self.nminibatches // self.noptepochs // self.n_steps, 1)
                     assert self.n_envs % self.nminibatches == 0
@@ -419,13 +391,6 @@ class PPO2(ActorCriticRLModel):
                     envs_per_batch = batch_size // self.n_steps
                     for epoch_num in range(self.noptepochs):
                         np.random.shuffle(env_indices)
-
-                        #save or restore env indices
-                        env_indices_data = {"env_indices":env_indices}
-                        loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, env_indices_data, \
-                                                self.num_timesteps, tb_log_name+'_env_indices_'+str(epoch_num))
-                        if loaded_data is not None:
-                            env_indices = loaded_data['env_indices']
 
                         for start in range(0, self.n_envs, envs_per_batch):
                             timestep = self.num_timesteps // update_fac + ((epoch_num *
@@ -436,13 +401,6 @@ class PPO2(ActorCriticRLModel):
                             slices = (arr[mb_flat_inds] for arr in (obs, returns, masks, actions, values, neglogpacs, action_masks))
                             mb_states = states[mb_env_inds]
 
-                            #save or restore mb states
-                            mb_states_data = {"mb_states":mb_states}
-                            loaded_data = self.saver.save_or_restore_info(self._save_to_file, self._load_from_file, mb_states_data, \
-                                                    self.num_timesteps, tb_log_name+'_mb_states_'+str(epoch_num))
-                            if loaded_data is not None:
-                                mb_states = loaded_data['mb_states']
-
                             mb_loss_vals.append(self._train_step(lr_now, cliprange_now, *slices, update=timestep,
                                                                  writer=writer, states=mb_states,
                                                                  cliprange_vf=cliprange_vf_now))
@@ -451,7 +409,7 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
                 
-                self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
+                self.saver.save_storage_to_file(self.storage, total_timesteps)
                 
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
@@ -502,7 +460,6 @@ class PPO2(ActorCriticRLModel):
         }
 
         params_to_save = self.get_parameters()
-
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
         self.csv_writer.close()
 
