@@ -78,8 +78,8 @@ class CustomSaver:
             except:
                 print (f'fail to restore ckpt-{step}')
 
-    def save_storage_to_file(self, storage, total_timesteps):
-        if self.mode == 1 and (storage.is_full() or storage.current_step == total_timesteps):
+    def save_storage_to_file(self, storage, last_batch_timesteps):
+        if self.mode == 1 and (storage.is_full() or storage.current_step >= last_batch_timesteps):
             name = self.timestamp + '_' + str(storage.current_step)+".bz2"
             with bz2.open(os.path.join(self.info_path, name), "wb") as f:
                 f.write(pickle.dumps(storage))

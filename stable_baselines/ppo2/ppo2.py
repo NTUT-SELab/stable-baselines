@@ -409,7 +409,7 @@ class PPO2(ActorCriticRLModel):
                 t_now = time.time()
                 fps = int(self.n_batch / (t_now - t_start))
                 
-                self.saver.save_storage_to_file(self.storage, total_timesteps)
+                self.saver.save_storage_to_file(self.storage, total_timesteps-self.n_steps)
                 
                 if writer is not None:
                     total_episode_reward_logger(self.episode_reward,
