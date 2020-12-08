@@ -28,7 +28,7 @@ class KVWriter(object):
     """
     Key Value writer
     """
-    def writekvs(self, kvs):
+    def writekvs(self, kvs, flush=True):
         """
         write a dictionary to file
 
@@ -65,7 +65,7 @@ class HumanOutputFormat(KVWriter, SeqWriter):
             self.file = filename_or_file
             self.own_file = False
 
-    def writekvs(self, kvs):
+    def writekvs(self, kvs, flush=False):
         # Create strings for printing
         key2str = {}
         for (key, val) in sorted(kvs.items()):
@@ -129,7 +129,7 @@ class JSONOutputFormat(KVWriter):
         """
         self.file = open(filename, 'wt')
 
-    def writekvs(self, kvs):
+    def writekvs(self, kvs, flush=False):
         for key, value in sorted(kvs.items()):
             if hasattr(value, 'dtype'):
                 if value.shape == () or len(value) == 1:
@@ -159,7 +159,7 @@ class CSVOutputFormat(KVWriter):
         self.keys = []
         self.sep = ','
 
-    def writekvs(self, kvs):
+    def writekvs(self, kvs, flush=False):
         # Add our current row to the history
         extra_keys = kvs.keys() - self.keys
         if extra_keys:
@@ -183,7 +183,8 @@ class CSVOutputFormat(KVWriter):
             if value is not None:
                 self.file.write(str(value))
         self.file.write('\n')
-        self.file.flush()
+        if flush:
+            self.file.flush()
 
     def close(self):
         """
@@ -229,7 +230,7 @@ class TensorBoardOutputFormat(KVWriter):
         path = os.path.join(os.path.abspath(folder), prefix)
         self.writer = pywrap_tensorflow.EventsWriter(compat.as_bytes(path))  # type: pywrap_tensorflow.EventsWriter
 
-    def writekvs(self, kvs):
+    def writekvs(self, kvs, flush=False):
         summary = tf.Summary(value=[summary_val(k, v) for k, v in kvs.items() if valid_float_value(v)])
         event = event_pb2.Event(wall_time=time.time(), summary=summary)
         event.step = self.step  # is there any reason why you'd want to specify the step?

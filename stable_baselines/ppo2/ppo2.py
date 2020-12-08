@@ -461,7 +461,6 @@ class PPO2(ActorCriticRLModel):
 
         params_to_save = self.get_parameters()
         self._save_to_file(save_path, data=data, params=params_to_save, cloudpickle=cloudpickle)
-        self.csv_writer.close()
 
 class Runner(AbstractEnvRunner):
     def __init__(self, *, env, model, n_steps, gamma, lam):
@@ -477,6 +476,8 @@ class Runner(AbstractEnvRunner):
         super().__init__(env=env, model=model, n_steps=n_steps)
         self.lam = lam
         self.gamma = gamma
+        log_dir = 'csv_log'
+        logger.Logger.CURRENT = logger.Logger(log_dir, [logger.make_output_format('csv', log_dir, self.model.saver.timestamp)])
 
     def _run(self):
         """
@@ -513,14 +514,15 @@ class Runner(AbstractEnvRunner):
             if isinstance(self.env.action_space, gym.spaces.Box):
                 clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
             self.obs[:], rewards, self.dones, infos = self.env.step(clipped_actions)
-            
-            kvs = {'action':actions[0], 'step':self.model.num_timesteps, 'location':location}
+
+            logger.logkv('action', actions)
+            logger.logkv('step', self.model.num_timesteps)      
             for i in range(proba.shape[1]):
                 if proba[0, i]==float('-inf'):
-                    kvs['action'+str(i)] = '-----'
+                    logger.logkv('action'+str(i), '-----')      
                 else:
-                    kvs['action'+str(i)] = proba[0,i]
-            self.model.csv_writer.writekvs(kvs)
+                    logger.logkv('action'+str(i), proba[0,i])              
+            logger.dumpkvs()
 
             self.model.num_timesteps += self.n_envs
 
