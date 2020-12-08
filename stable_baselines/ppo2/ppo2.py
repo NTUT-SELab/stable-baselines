@@ -499,10 +499,6 @@ class Runner(AbstractEnvRunner):
         ep_infos = []
         for _ in range(self.n_steps):
             actions, proba, values, self.states, neglogpacs = self.model.step(self.obs, self.states, self.dones, action_mask=self.action_masks)
-            #Mouse Position in MouseWalkingMaze
-            location = self.obs.reshape(self.obs.shape[1], self.obs.shape[2])
-            location = np.asarray(np.where(location==3)).flatten()
-            
             mb_obs.append(self.obs.copy())
             mb_actions.append(actions)
             mb_values.append(values)
