@@ -246,7 +246,6 @@ class PPO2(ActorCriticRLModel):
 
                 # build saver
                 self.saver.build()
-                self.csv_writer = logger.CSVOutputFormat(self.saver.timestamp+'_log.csv')
                 self.saver.save_or_restore_ckpt(self.sess, self.num_timesteps)
 
                 self.summary = tf.summary.merge_all()
