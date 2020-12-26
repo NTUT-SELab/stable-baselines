@@ -72,7 +72,7 @@ class PPO2(ActorCriticRLModel):
         self.tensorboard_log = tensorboard_log
         self.full_tensorboard_log = full_tensorboard_log
         self.saver = saver
-        self.storage = Storage(limit=10000)
+        self.storage = Storage(limit=1000)
         
         self.action_ph = None
         self.advs_ph = None
