@@ -7,7 +7,7 @@ from stable_baselines.common.identity_env import IdentityEnvBox
 
 class Helper:
     @staticmethod
-    def proba_vals(obs, state, mask):
+    def proba_vals(obs, state, mask, action_masks):
         # Return fixed mean, std
         return np.array([-0.4]), np.array([[0.1]])
 
